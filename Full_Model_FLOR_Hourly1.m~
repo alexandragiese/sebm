@@ -1,26 +1,32 @@
 function [R1, R2, RAve] = Full_Model_FLOR_Hourly1( GUI_Input )
+% This is the main function of Run_Single_Glacier and calls a host of
+% sub-functions.
+% E. Johnson, U of U
 
 addpath(genpath('/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/Full_Model_v2.000'));
-addpath('/uufs/chpc.utah.edu/common/home/u6027899/SEBM_from_Eric');
+
 %% Specifics for larger region of interest
 
-kColLn = 15600;
-kRowLn = 45600;
+% kColLn = 15600; length(mGlacNum(:,1))
+% kRowLn = 45600; length(mGlacNum)
 
 %% Glacier to extract
 
 % Glacier Number (Chhota Shigri = 14673)
-iGlacierNumber = GUI_Input.glacier_number; 
+iGlacierNumber = GUI_Input.glacier_number; %58793 = RGI60-14.04883 = GLIMS G075074E35860N
 % sRegion = GUI_Input.region;
 
-mGlacNum = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum');
-mGlacNum = mGlacNum.mGlacNum;
-
-% Border necessary for sky view factor calculation
+mGlacNum = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum'); %mGlacNum is a structure containing a single variable by the same name
+% load ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat; %(the above is better coding but this is equivalent)
+mGlacNum = mGlacNum.mGlacNum; %15600x45600 double prec.
+    kRowLn = length(mGlacNum);
+    kColLn = length(mGlacNum(:,1)); 
+% Border (margin?) necessary for sky view factor calculation
 kBorder = 200;
-% Create matrix of 100x100 tile numbers
-mTileNumber = reshape(1:kColLn*kRowLn/10000,[kRowLn/100 kColLn/100])';
-mTileNumber = kron(mTileNumber,ones(100,100));
+% Create matrix of 100x100 tile numbers <--???
+mTileNumber = reshape(1:kColLn*kRowLn/10000,[kRowLn/100 kColLn/100])'; % 156x456
+mTileNumber = kron(mTileNumber,ones(100,100)); % Kronecker tensor product: 15600x45600 {I don't understand this}
+
 % Find indices of glacier edges
 [row, col] = find(mGlacNum==iGlacierNumber);
 iM_i = floor(min(row)/100)*100 - kBorder;
@@ -28,11 +34,11 @@ iM_f = ceil(max(row)/100)*100 + kBorder;
 iN_i = floor(min(col)/100)*100 - kBorder;
 iN_f = ceil(max(col)/100)*100 + kBorder;
 mTileNumber_Extract = mTileNumber(iM_i+1:iM_f,iN_i+1:iN_f);
-vTileNumbers = unique(mTileNumber_Extract);
+vTileNumbers = unique(mTileNumber_Extract); %sorted, without repititions
 mGlacNum_Extract = mGlacNum(iM_i+1:iM_f,iN_i+1:iN_f);
 
-% Remove large, unnecessary variables
-clearvars mTileNumbers
+% % Remove large, unnecessary variables
+% clearvars mTileNumbers %dne
 
 % Extract DEMs and Masks for given glacier
 mDEM = zeros(size(mTileNumber_Extract));
@@ -84,15 +90,22 @@ iLong_max = max(mLong(:));
 
 % Calculate geographic reference matrix for 100x100 grid
 R_Geo = makerefmat('RasterSize',size(mGlacMask),'Latlim',[iLat_min, iLat_max],...
-    'Lonlim',[iLong_min, iLong_max]);
+    'Lonlim',[iLong_min, iLong_max]); %"Construct affine spatial-referencing matrix"
+%     "A spatial referencing matrix R ties the row and column subscripts of an
+%     image or regular data grid to 2-D map coordinates or to geographic
+%     coordinates (longitude and geodetic latitude).  R is a 3-by-2 affine
+%     transformation matrix.  R either transforms pixel subscripts (row,
+%     column) to/from map coordinates (x,y)" or vice versa
+
 % Slope of the glacier surface (degrees)
-[mAspect, mSlope, ~, ~] = gradientm(mGlacAlt,R_Geo);
+[mAspect, mSlope, ~, ~] = gradientm(mGlacAlt,R_Geo); %Calculate gradient, slope and aspect of data grid
+% [ASPECT,SLOPE,dFdyNorth,dFdxEast] = gradientm(F,R) for grid F
 mAspect(isnan(mAspect)) = nanmean(mAspect(mGlacMask==1));
 % Sky view factor (unitless fraction)
 kRadius = 98;
 [mSVF] = SkyViewFactor1(mGlacMask,mGlacAlt,mLat,mLong,kRadius); % Gridcells (1 gridcell = 90m)
 mSVF(isnan(mSVF) == 1) = 1;
-
+keyboard
 %% Remove added borders
 
 mGlacMask(1:kBorder,:) = []; mGlacMask(end-kBorder+1:end,:) = [];
@@ -521,7 +534,7 @@ for t = kStart:kEnd
         for r = 1:24
 
             % Time step (days)
-            kTS_Days = 1; %GUI_Input.model_resolution/24;    
+            kTS_Days = GUI_Input.model_resolution/24;    
             % Time step (minutes)
             kTS_mins = kTS_Days * 24 * 60;    
 
@@ -839,7 +852,7 @@ R2.TotalAveEvap = nanmean(mTotalEvap(mGlacMask == 1));
 
 % % Display total average melt (m)
 % disp(['Total Average Melt = ',num2str(R.TotalAveMelt),' meters'])
-% % % Display total accumulation (m)
+% % Display total accumulation (m)
 % disp(['Total average accumulation ',num2str(R.TotalAveAccum),' meters'])
 
 clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
@@ -862,8 +875,8 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % m3T_a = single(m3T_a);
 % m3Precipitation = single(m3Precipitation);
 % m3Rain_Freeze_Amount = single(m3Rain_Freeze_Amount);
-cd /uufs/chpc.utah.edu/common/home/u6027899/SEBM_from_Eric
-save(['test',num2str(iGlacierNumber),'_AG.mat'])
+
+save([GUI_Input.output_filename, num2str(iGlacierNumber),', Ensemble # ',num2str(GUI_Input.ensemble_number),'.mat'])
 
 % else
 %     
@@ -882,3 +895,20 @@ save(['test',num2str(iGlacierNumber),'_AG.mat'])
 
 
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

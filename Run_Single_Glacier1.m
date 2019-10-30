@@ -38,61 +38,40 @@ vModel_MB_1975_to_2000 = NaN(length(vJosh_Object_ID),1);
 vModel_MB_2000_to_2016 = NaN(length(vJosh_Object_ID),1);
 vModel_MB = NaN(length(vJosh_Object_ID),1);
 
-for r = 377:length(vJosh_Object_ID)
+for r = 231 %377 %:length(vJosh_Object_ID) %r= 231 (Chhota) 
 
-%     try
-        
-        if strcmp(vcJosh_Category{r}(2:end-1),'Clean') && vJosh_PctDeb(r) <= 10
+if strcmp(vcJosh_Category{r}(2:end-1),'Clean') && vJosh_PctDeb(r) <= 15
+
+    GUI_Input.glacier_number = vJosh_Object_ID(r); % RGI50-14.18948
+
+    [R1, R2, RAve] = Full_Model_FLOR_Hourly1( GUI_Input );
             
-%         if vJosh_PctDeb(r) <= 10
-
-%         for g = 2:30
-        
-%             GUI_Input.ensemble_number = g;
-        
-            GUI_Input.glacier_number = vJosh_Object_ID(r); % RGI50-14.18948
-
-            [R1, R2, RAve] = Full_Model_FLOR_Hourly1( GUI_Input );
-            
-            if strcmp(GUI_Input.sGCM,'FLOR')
+    if strcmp(GUI_Input.sGCM,'FLOR')
+%                 
+%        try
+%                     vModel_MB_1975_to_2000(r) = (R1.TotalAveAccum + R1.TotalAveMelt + R1.Total) / (2000-1975+1);
+%                     vModel_MB_2000_to_2016(r) = (R2.TotalAveAccum + R2.TotalAveMelt) / (2016-2000+1);
+%                     disp(['Glacier ',num2str(r),' of ',num2str(length(vJosh_Object_ID)),': MB1975 = ',num2str(vModel_MB_1975_to_2000(r)),', MB2000 = ',num2str(vModel_MB_2000_to_2016(r)),' (',num2str(vJosh_GeoMassBal(r)),')'])
+%        catch
+%                     iYears = str2double(GUI_Input.end_date(7:10)) - str2double(GUI_Input.start_date(7:10)) + 1;
+%                     vModel_MB(r) = (R2.TotalAveAccum + R2.TotalAveMelt) / iYears;
+%                     disp(['Glacier ',num2str(r),' of ',num2str(length(vJosh_Object_ID)),': MB = ',num2str(vModel_MB(r)),' (',num2str(vJosh_GeoMassBal(r)),')'])
+%        end
                 
-                try
-                    vModel_MB_1975_to_2000(r) = (R1.TotalAveAccum + R1.TotalAveMelt + R1.Total) / (2000-1975+1);
-                    vModel_MB_2000_to_2016(r) = (R2.TotalAveAccum + R2.TotalAveMelt) / (2016-2000+1);
-                    disp(['Glacier ',num2str(r),' of ',num2str(length(vJosh_Object_ID)),': MB1975 = ',num2str(vModel_MB_1975_to_2000(r)),', MB2000 = ',num2str(vModel_MB_2000_to_2016(r)),' (',num2str(vJosh_GeoMassBal(r)),')'])
-                catch
-                    iYears = str2double(GUI_Input.end_date(7:10)) - str2double(GUI_Input.start_date(7:10)) + 1;
-                    vModel_MB(r) = (R2.TotalAveAccum + R2.TotalAveMelt) / iYears;
-                    disp(['Glacier ',num2str(r),' of ',num2str(length(vJosh_Object_ID)),': MB = ',num2str(vModel_MB(r)),' (',num2str(vJosh_GeoMassBal(r)),')'])
-                end
-                
-            elseif strcmp(GUI_Input.sGCM,'HAR')
+    elseif strcmp(GUI_Input.sGCM,'HAR')
                 iYears = str2double(GUI_Input.end_date(7:10)) - str2double(GUI_Input.start_date(7:10)) + 1;
                 vModel_MB(r) = (R2.TotalAveAccum + R2.TotalAveMelt + R2.TotalAveSub) / iYears;
                 disp(['Glacier ',num2str(r),' of ',num2str(length(vJosh_Object_ID)),': MB = ',num2str(vModel_MB(r)),' (',num2str(vJosh_GeoMassBal(r)),')'])
-            end
-            
-        
-            
-            
-            toc
-            
-        
-%         end
-        
-        end
-
-%     catch
-%        
-%         disp(['Error at r = ',num2str(r),', Glacier: ',num2str(vJosh_Object_ID(r))])
-%         
-%     end
-
-    if rem(r,30)
-
-        save Josh_MB_temp_save1.mat
-
     end
+toc
+            
+end
+
+% % if rem(r,30)
+
+  save Josh_MB_test_AG.mat
+
+% % end
 
 end
 
