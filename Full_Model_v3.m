@@ -1,7 +1,7 @@
-function [R1, R2, RAve] = Full_Model_FLOR_Hourly1( GUI_Input )
+function [R1, R2, RAve] = Full_Model_v3( GUI_Input )
 
-addpath(genpath('/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/Full_Model_v2.000'));
-
+% addpath(genpath('/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/Full_Model_v2.000'));
+addpath('/uufs/chpc.utah.edu/common/home/u6027899/SEBM_from_Eric_Oct25');
 %% Specifics for larger region of interest
 
 kColLn = 15600;
@@ -9,9 +9,7 @@ kRowLn = 45600;
 
 %% Glacier to extract
 
-% Glacier Number (Chhota Shigri = 14673)
 iGlacierNumber = GUI_Input.glacier_number; 
-% sRegion = GUI_Input.region;
 
 mGlacNum = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum');
 mGlacNum = mGlacNum.mGlacNum;
@@ -110,7 +108,7 @@ mLat(:,1:kBorder) = []; mLat(:,end-kBorder+1:end) = [];
 mLong(1:kBorder,:) = []; mLong(end-kBorder+1:end,:) = [];
 mLong(:,1:kBorder) = []; mLong(:,end-kBorder+1:end) = [];
     
-%% Extract FLOR Data    
+%% Extract GCM Data    
 
 sGCM = GUI_Input.sGCM;
 
@@ -122,12 +120,17 @@ elseif strcmp(sGCM,'WRF')
     
 end
 
-iEnsNum = GUI_Input.ensemble_number; % Only matters if sGCM = FLOR
-
+sTempRes = GUI_Input.HAR_temp_res;
 if strcmp(sGCM,'FLOR')
+    iEnsNum = GUI_Input.ensemble_number; % Only matters if sGCM = FLOR
     [ vLW_in, vP_d, vP_a, ~, vRH, vT_a, vSW_in, vU, stTime, Data ] = ExtractFLOR1(kLat, kLong, sDataDirectory, iEnsNum);
 elseif strcmp(sGCM,'HAR')
-    [ vSW_in, vU, vT_a, vP_d, vP_a, vRH, vEmiss, vLW_in, stTime, Data  ] = ExtractHAR1( kLat, kLong, sDataDirectory );
+    if strcmp(sTempRes,'Hourly') % I can never remember whether or not to capitalize things
+        sTempRes = 'hourly';
+    elseif strcmp(sTempRes,'Daily')
+        sTempRes = 'daily';
+    end
+    [ vSW_in, vU, vT_a, vP_d, vP_a, vRH, ~, vLW_in, stTime, Data  ] = ExtractHAR1( kLat, kLong, sTempRes, sDataDirectory );
 elseif strcmp(sGCM,'WRF')
     
 end
@@ -164,15 +167,20 @@ MBYear2000 = str2double(GUI_Input.mb_date_2000(7:10));
 
 kMBDay2000 = find(stTime.day==MBDay2000 & stTime.month==MBMonth2000 & stTime.year==MBYear2000,1,'first');
 
-%% Inputs
+%% Time Step
 
 % Data resolution (minutes)
-kData_Resolution = Data.Resolution;
+kData_Resolution = Data.Resolution_mins;
+% Time step (days)
+kTimeStep_days = kData_Resolution / (24 * 60);   
+% Time step (seconds)
+kTimeStep_sec = kTimeStep_days * 24 * 60 * 60;
+% Number of timesteps in one day
+kN_per_Day = 1 ./ kTimeStep_days;
 
-vTime = 1:length(vT_a);
+%% Inputs
 
-% How many days should be averaged together? (days)
-kTS_Days = GUI_Input.model_resolution;                                                
+vTime = 1:length(vT_a);     
 
 % Density of the snow (kg m^-3)
 kRho_snow = GUI_Input.snow_density;
@@ -193,26 +201,15 @@ kPrecipThresh = GUI_Input.precip_threshold;
 
 %% Temperature lapse rate (C km^-1)
 
-% kLapseRates = GUI_Input.lapse_rate; 
-
-vLapseRates = GCM_Surface_Lapse_Rates1( sGCM, kLat, kLong );
+vLapseRates = GCM_Surface_Lapse_Rates1( sGCM, sTempRes, kLat, kLong );
 [ vLapseRates_smooth ] = SmoothLapseRates1( vLapseRates  );
 
-%% Scale Wind Speed from 10m to 2m
+%% Scale Wind Speed from 10m to 2m (for HAR)
 
 if strcmp(sGCM,'HAR')
     kZ_0 = nanmean([kZ_0m_snow,kZ_0m_ice]);
     vU = vU .* (log(2/kZ_0) ./ log(10/kZ_0));
 end
-
-%% Time Step
-        
-% Number of timesteps in one day
-kN_per_Day = 60 * 24 / kData_Resolution;
-% Number of raw timesteps to average together
-kN_Ave = kN_per_Day * kTS_Days;
-% Time step (minutes)
-kTS_mins = kTS_Days * 24 * 60;    
 
 %% Average weather station data inputs
 
@@ -228,8 +225,13 @@ vT_a = vT_a + kDeltaT_a;
 %% Time Step
 
 % Where to start and stop model (in elements in averaged vectors)
-[~, kStart] = min(abs(vTime-kStartDay*kN_per_Day-(kN_per_Day-1)));
-[~, kEnd] = min(abs(vTime-kEndDay*kN_per_Day));
+if strcmp(sGCM,'FLOR')
+    [~, kStart] = min(abs(vTime-kStartDay*kN_per_Day-(kN_per_Day-1)));
+    [~, kEnd] = min(abs(vTime-kEndDay*kN_per_Day));
+else
+    kStart = kStartDay;
+    kEnd = kEndDay;
+end
                                            
 %% Constants
 
@@ -356,43 +358,40 @@ RAve.Accumulation = zeros(length(vTime),1);
 RAve.Rain_Freeze_Energy = zeros(length(vTime),1);
 RAve.Rain_Freeze_Amount = zeros(length(vTime),1);
 
-% m3TotalMelt = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3TotalAccum = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Alpha = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3S_net = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3L_out = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3L_in = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Q_S = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Q_L = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Q_P = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3T_s_Act_s = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3T_s_Act_2 = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3T_a = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Precipitation = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Rain_Freeze_Amount = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Q_net = zeros([size(mGlacMask),kEnd-kStart+1]);
-% m3Q_m = zeros([size(mGlacMask),kEnd-kStart+1]);
-
-% Time step (days)
-kTS_Days = GUI_Input.model_resolution;    
-% Time step (minutes)
-kTS_mins = kTS_Days * 24 * 60;   
+%FOR SAVING FULLY DISTRIBUTED VARIABLES - PREALLOCATE SPACE
+m3TotalMelt = zeros([size(mGlacMask),kEnd-kStart+1]); %Total Melt (mm/time)
+% m3TotalAccum= zeros([size(mGlacMask),kEnd-kStart+1]); %Total Acc (mm/time)
+% m3Alpha     = zeros([size(mGlacMask),kEnd-kStart+1]); %Albedo (-)
+% m3S_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %New SW (W/m^2)
+% m3L_out     = zeros([size(mGlacMask),kEnd-kStart+1]); %Emited LW (W/m^2)
+% m3L_in      = zeros([size(mGlacMask),kEnd-kStart+1]); %Incoming LW (W/m^2)
+% m3Q_S       = zeros([size(mGlacMask),kEnd-kStart+1]); %S (sensible?) (W/m^2)
+% m3Q_L       = zeros([size(mGlacMask),kEnd-kStart+1]); %LE (latent?) (W/m^2)
+% m3Q_P       = zeros([size(mGlacMask),kEnd-kStart+1]); %Energy from precip? (W/m^2)
+% m3T_s_Act_s = zeros([size(mGlacMask),kEnd-kStart+1]); %Surface temperature (C)
+% m3T_s_Act_2 = zeros([size(mGlacMask),kEnd-kStart+1]); %Temperature of 2nd surface layer (C)
+% m3T_a       = zeros([size(mGlacMask),kEnd-kStart+1]); %Air temperature (C)
+% m3Precipitation = zeros([size(mGlacMask),kEnd-kStart+1]); %Total precip, both phases (mm w.e./time)
+% m3Rain_Freeze_Amount = zeros([size(mGlacMask),kEnd-kStart+1]); %Freezing rain (mm w.e./time?)
+% m3Q_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %Net surface energy (W/m^2)
+% m3Q_m   = zeros([size(mGlacMask),kEnd-kStart+1]);     %Melt energy (W/m^2)
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Model Start
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for t = kStart:kEnd 
-
+t
     %% Extract timestep data
 
     mSW_in = vSW_in(t) .* mGlacMask;
-    mSW_in = Calc_SW_in_dir_Sl_As1(mSW_in,mLat,mLong,mGlacAlt,mSlope,mAspect,stTime,mGlacMask,t);
+    mSW_in = Calc_SW_in_dir_Sl_As1(mSW_in,mLat,mLong,mGlacAlt,mSlope,mAspect,stTime,mGlacMask,kTimeStep_days,sGCM,t);
 
     mU = vU(t) .* mGlacMask;
 
     %% Apply precipitation gradient (%/m) up to 5500 mas
     
+    % Currently, no precipitation gradient used
     mPrecip = (vP_d(t) .* mGlacMask);
 
     %% Calculate air pressure gradient with the hydrostatic equation (hPa/m)
@@ -417,7 +416,7 @@ for t = kStart:kEnd
     %% Precipitation
     
     % Update snow clock
-    mSnowClock = (mSnowClock + kTS_Days) .* mGlacMask;
+    mSnowClock = (mSnowClock + kTimeStep_days) .* mGlacMask;
     
     % Add accumulation (m)
     mTotalAccum(mT_a <= kRainThreshold) = (mTotalAccum(mT_a <= kRainThreshold) + mPrecip(mT_a <= kRainThreshold));
@@ -456,8 +455,8 @@ for t = kStart:kEnd
     % R_b (Richardson stability constant)
     mR_b = kG .* (mT_a - mT_s_Act_s) .* (kZ - mZ_0m) ./ ((273.15 + ...
         mT_a) .* mU.^2);                                                    % From Anderson and Others, 2010 (Eq. 17)
-    % Stability correction
-    if kTS_Days >= 1
+    % Stability correction (only applied for sub-daily time steps)
+    if kTimeStep_days < 1
         mStabCorr = (1 - 5 * mR_b).^2;
         % Only use stability corrections if 0.2 > R_b > 0.01
         mStabCorr(mR_b < 0.01) = 1;                                                 
@@ -508,148 +507,57 @@ for t = kStart:kEnd
     %% Calculate effective emissivity
     
     kE_eff_a = vLW_in(t) / (kSigma * (273.15 + vT_a(t)).^4);
-    
-    %% Allow surface temps to change hourly
-    
-    mL_out_hr = zeros(size(mGlacMask));
-    mQ_S_hr = zeros(size(mGlacMask));
-    mQ_L_hr = zeros(size(mGlacMask));
-    mQ_G_hr = zeros(size(mGlacMask));
-    mQ_net_hr = zeros(size(mGlacMask));
-    
-    if kTS_Days >=1 
-        for r = 1:24
-
-            % Time step (days)
-            kTS_Days = GUI_Input.model_resolution/24;    
-            % Time step (minutes)
-            kTS_mins = kTS_Days * 24 * 60;    
-
-            %% Energy balance
-
-            % S(1-alpha) (W m^-2)
-            mS_net = (mSW_in .* (1 - mAlpha)) .* mGlacMask;
-            % L_out (W m^-2)
-            mL_out = -(kSigma * kE_i * (273.15 + mT_s_Act_s).^4) .* mGlacMask;
-            % L_in (W m^-2)
-            mL_in = kSigma .* kE_eff_a .* ((273.15 + mT_a) .^ 4) .* mGlacMask;
-            % Q_S
-            mQ_S = (kRho_a_sl .* kC_p .* mK_H .* (mP_a ./ kP_a_sl) .* mU .* (mT_a - mT_s_Act_s)) ...
-                .* mGlacMask;
-            % Q_L
-            mQ_L = 0.622 * kRho_a_sl .* mK_E .* mU .* mL_vf .* (mVP_a - ...
-                mSVP_s) ./ mP_a .* mGlacMask;
-            % Q_P (W m^-2)
-            mQ_P = 1000 * kC_w * (mPrecip / (60 * kTS_mins)) .* (mT_a) .* mGlacMask;   % From Hock 2005
-            % Precipitation heat flux only from rain (i.e. when T_a > 0)
-            mQ_P(mT_a <= 0) = 0;
-            % Q_G (W m^-2)
-            mQ_G = ( kK * mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
-                kLayerThick_s ) ./ kLayerThick_s .* (kTS_mins * 60) .* mGlacMask;     % From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 206 (Eq. 5)
-            % Remove NaNs and stuff
-            mQ_L(isnan(mQ_L) == 1) = 0;
-
-            % Melt Energy (W m^-2)
-            mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L + mQ_P + mQ_G) ...
-                .* mGlacMask;
-
-            %% Surface temperature
-
-            % Calculate change in temperature of top 2 layers for this timestep (K)   
-            mDelta_T_s = (( mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
-                kLayerThick_s ) ./ kLayerThick_s + (mQ_net - mQ_G) ./ (kC_i .* ...
-                mRho_s .* kLayerThick_s)) .* (kTS_mins * 60) .* mGlacMask;
-            mDelta_T_2 = (  ( mK_2 .* (mT_s_Act_3 - mT_s_Act_2) ./ ...
-                kLayerThick_2 ) - ( mK_s .* (mT_s_Act_2 - mT_s_Act_s) )...
-                ./ kLayerThick_s  ) ./ kLayerThick_2 .* (kTS_mins * 60) .* mGlacMask;
-
-            %%
-            % Theoretical surface temperature (K)
-            mT_s_Theor_s = mT_s_Act_s + mDelta_T_s;
-            mT_s_Theor_2 = mT_s_Act_2 + mDelta_T_2;
-            mT_s_Theor_s(mT_s_Theor_s<-50) = -50;
-
-            % Actual surface temperature (can't be above zero) (K)
-            mT_s_Act_s = mT_s_Theor_s;
-            mT_s_Act_2 = mT_s_Theor_2;
-            mT_s_Act_s(mT_s_Act_s > 0) = 0;
-            mT_s_Act_2(mT_s_Act_2 > 0) = 0;
-
-            mL_out_hr = mL_out_hr + mL_out/24;
-            mQ_S_hr = mQ_S_hr + mQ_S/24;
-            mQ_L_hr = mQ_L_hr + mQ_L/24;
-            mQ_G_hr = mQ_G_hr + mQ_G/24;
-            mQ_net_hr = mQ_net_hr + mQ_net/24;
-
-        end % End splitting days into hours
         
-            % Time step (days)
-            kTS_Days = GUI_Input.model_resolution;    
-            % Time step (minutes)
-            kTS_mins = kTS_Days * 24 * 60;   
+    %% Energy balance
 
-            %% Compile hourly energy fluxes back into daily values
+    % S(1-alpha) (W m^-2)
+    mS_net = (mSW_in .* (1 - mAlpha)) .* mGlacMask;
+    % L_out (W m^-2)
+    mL_out = -(kSigma * kE_i * (273.15 + mT_s_Act_s).^4) .* mGlacMask;
+    % L_in (W m^-2)
+    mL_in = kSigma .* kE_eff_a .* ((273.15 + mT_a) .^ 4) .* mGlacMask;
+    % Q_S
+    mQ_S = (kRho_a_sl .* kC_p .* mK_H .* (mP_a ./ kP_a_sl) .* mU .* (mT_a - mT_s_Act_s)) ...
+        .* mGlacMask;
+    % Q_L
+    mQ_L = 0.622 * kRho_a_sl .* mK_E .* mU .* mL_vf .* (mVP_a - ...
+        mSVP_s) ./ mP_a .* mGlacMask;
+    % Q_P (W m^-2)
+    mQ_P = 1000 * kC_w * mPrecip .* (mT_a) / kTimeStep_sec .* mGlacMask;   % From Hock 2005
+    % Precipitation heat flux only from rain (i.e. when T_a > 0)
+    mQ_P(mT_a <= 0) = 0;
+    % Q_G (W m^-2)
+    mQ_G = ( kK * mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
+        kLayerThick_s ) ./ kLayerThick_s .* kTimeStep_sec .* mGlacMask;     % From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 206 (Eq. 5)
+    % Remove NaNs and stuff
+    mQ_L(isnan(mQ_L) == 1) = 0;
 
-            mL_out = mL_out_hr;
-            mQ_S = mQ_S_hr;
-            mQ_L = mQ_L_hr;
-            mQ_G = mQ_G_hr;
-            mQ_net = mQ_net_hr;
+    % Melt Energy (W m^-2)
+    mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L + mQ_P + mQ_G) ...
+        .* mGlacMask;
+
+    %% Surface temperature
+
+    % Calculate change in temperature of top 2 layers for this timestep (K)   
+    mDelta_T_s = (( mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
+        kLayerThick_s ) ./ kLayerThick_s + (mQ_net - mQ_G) ./ (kC_i .* ...
+        mRho_s .* kLayerThick_s)) .* kTimeStep_sec .* mGlacMask;
+    mDelta_T_2 = (  ( mK_2 .* (mT_s_Act_3 - mT_s_Act_2) ./ ...
+        kLayerThick_2 ) - ( mK_s .* (mT_s_Act_2 - mT_s_Act_s) )...
+        ./ kLayerThick_s  ) ./ kLayerThick_2 .* kTimeStep_sec .* mGlacMask;
+
+    %%
+    % Theoretical surface temperature (K)
+    mT_s_Theor_s = mT_s_Act_s + mDelta_T_s;
+    mT_s_Theor_2 = mT_s_Act_2 + mDelta_T_2;
+    mT_s_Theor_s(mT_s_Theor_s<-50) = -50;
+
+    % Actual surface temperature (can't be above zero) (K)
+    mT_s_Act_s = mT_s_Theor_s;
+    mT_s_Act_2 = mT_s_Theor_2;
+    mT_s_Act_s(mT_s_Act_s > 0) = 0;
+    mT_s_Act_2(mT_s_Act_2 > 0) = 0;
         
-    else
-
-            %% Energy balance
-
-            % S(1-alpha) (W m^-2)
-            mS_net = (mSW_in .* (1 - mAlpha)) .* mGlacMask;
-            % L_out (W m^-2)
-            mL_out = -(kSigma * kE_i * (273.15 + mT_s_Act_s).^4) .* mGlacMask;
-            % L_in (W m^-2)
-            mL_in = kSigma .* kE_eff_a .* ((273.15 + mT_a) .^ 4) .* mGlacMask;
-            % Q_S
-            mQ_S = (kRho_a_sl .* kC_p .* mK_H .* (mP_a ./ kP_a_sl) .* mU .* (mT_a - mT_s_Act_s)) ...
-                .* mGlacMask;
-            % Q_L
-            mQ_L = 0.622 * kRho_a_sl .* mK_E .* mU .* mL_vf .* (mVP_a - ...
-                mSVP_s) ./ mP_a .* mGlacMask;
-            % Q_P (W m^-2)
-            mQ_P = 1000 * kC_w * (mPrecip / (60 * kTS_mins)) .* (mT_a) .* mGlacMask;   % From Hock 2005
-            % Precipitation heat flux only from rain (i.e. when T_a > 0)
-            mQ_P(mT_a <= 0) = 0;
-            % Q_G (W m^-2)
-            mQ_G = ( kK * mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
-                kLayerThick_s ) ./ kLayerThick_s .* (kTS_mins * 60) .* mGlacMask;     % From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 206 (Eq. 5)
-            % Remove NaNs and stuff
-            mQ_L(isnan(mQ_L) == 1) = 0;
-
-            % Melt Energy (W m^-2)
-            mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L + mQ_P + mQ_G) ...
-                .* mGlacMask;
-
-            %% Surface temperature
-
-            % Calculate change in temperature of top 2 layers for this timestep (K)   
-            mDelta_T_s = (( mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
-                kLayerThick_s ) ./ kLayerThick_s + (mQ_net - mQ_G) ./ (kC_i .* ...
-                mRho_s .* kLayerThick_s)) .* (kTS_mins * 60) .* mGlacMask;
-            mDelta_T_2 = (  ( mK_2 .* (mT_s_Act_3 - mT_s_Act_2) ./ ...
-                kLayerThick_2 ) - ( mK_s .* (mT_s_Act_2 - mT_s_Act_s) )...
-                ./ kLayerThick_s  ) ./ kLayerThick_2 .* (kTS_mins * 60) .* mGlacMask;
-
-            %%
-            % Theoretical surface temperature (K)
-            mT_s_Theor_s = mT_s_Act_s + mDelta_T_s;
-            mT_s_Theor_2 = mT_s_Act_2 + mDelta_T_2;
-            mT_s_Theor_s(mT_s_Theor_s<-50) = -50;
-
-            % Actual surface temperature (can't be above zero) (K)
-            mT_s_Act_s = mT_s_Theor_s;
-            mT_s_Act_2 = mT_s_Theor_2;
-            mT_s_Act_s(mT_s_Act_s > 0) = 0;
-            mT_s_Act_2(mT_s_Act_2 > 0) = 0;
-        
-    end
-
     %% Freezing of rain  
     % Rain that falls when the cold content of the surface layer is zero 
     % is assumed to runoff the glacier.
@@ -657,19 +565,19 @@ for t = kStart:kEnd
     mRain_Freeze_Energy = zeros(size(mGlacMask));
     % Freezing of rain (W m^-2)
     mRain_Freeze_Energy(mT_a > 0 & mPrecip > 0) = mPrecip(mT_a > 0 & mPrecip > 0) ...
-        * 1000 * kL_f / (kTS_mins * 60);
+        * 1000 * kL_f / kTimeStep_sec;
     % Cold content of the surface layer (W m^-2)
     mColdContent_s = kC_i * mRho_s .* (kLayerThick_s * mRho_s / 1000) .* ...
-        (0 - mT_s_Act_s) / (kTS_mins * 60);
+        (0 - mT_s_Act_s) / kTimeStep_sec;
     % Can't freeze more than cold content allows
     mRain_Freeze_Energy(mRain_Freeze_Energy > mColdContent_s) = ...
         mColdContent_s(mRain_Freeze_Energy > mColdContent_s);
     % Freezing water warms the surface layer
-    mT_s_Act_s = mT_s_Act_s + ( mRain_Freeze_Energy ./ (kC_i .* mRho_s .* kLayerThick_s) .* (kTS_mins * 60) );
+    mT_s_Act_s = mT_s_Act_s + ( mRain_Freeze_Energy ./ (kC_i .* mRho_s .* kLayerThick_s) .* kTimeStep_sec );
     % Add refreeze energy to Q_net (but not to Q_m)
     mQ_net = mQ_net + mRain_Freeze_Energy;
     % Calculate amount of frozen rain (m w.e.)
-    mRain_Freeze_Amt = mRain_Freeze_Energy * (kTS_mins * 60) / (kL_f * 1000);
+    mRain_Freeze_Amt = mRain_Freeze_Energy * kTimeStep_sec / (kL_f * 1000);
     % Add frozen rain as accumulation (m w.e.)
     mTotalAccum = (mTotalAccum + mRain_Freeze_Amt) .* mGlacMask;
                                    
@@ -677,22 +585,21 @@ for t = kStart:kEnd
 
     mQ_m = zeros(size(mGlacMask));
     mQ_m(mT_s_Theor_s > 0) = mT_s_Theor_s(mT_s_Theor_s > 0) * kC_i .* ...
-        mRho_s(mT_s_Theor_s > 0) * kLayerThick_s / (kTS_mins * 60);
+        mRho_s(mT_s_Theor_s > 0) * kLayerThick_s / kTimeStep_sec;
 
     %% Mass loss: melting and sublimation 
 
     % Snow melt (m)
-    mSnowMelt = mQ_m * (kTS_mins * 60) / (kL_f * kRho_snow);
+    mSnowMelt = mQ_m * kTimeStep_sec / (kL_f * kRho_snow);
 
     % Sublimation (m)
     mSub = zeros(size(mGlacMask));
-    mSub(mQ_L < 0) = -mQ_L(mQ_L < 0) / (kL_s * kRho_snow) * ...
-    (15 * 60) .* mGlacMask(mQ_L < 0);                                       % Thiery et al., 2012 "Surface and snowdrift sublimation at Princess Elisabeth station, East Antarctica"
+    mSub(mQ_L < 0) = -mQ_L(mQ_L < 0) .* kTimeStep_sec ./ (kL_s * kRho_snow) .* mGlacMask(mQ_L < 0);                                       % Thiery et al., 2012 "Surface and snowdrift sublimation at Princess Elisabeth station, East Antarctica"
 
     % Evaporation (m)
     mEvap = zeros(size(mGlacMask));
     mEvap(mT_s_Act_s >= 0) = -mQ_L(mT_s_Act_s >= 0) / (kL_v * kRho_snow) * ...
-    (15 * 60 * kN_Ave) .* mGlacMask(mT_s_Act_s >= 0);  
+    (15 * 60) .* mGlacMask(mT_s_Act_s >= 0);  
 
     % Adjust snow depth for melt and sublimation (m)
     mSnowDepth = (mSnowDepth - mSnowMelt - mSub - mEvap) .* mGlacMask;            
@@ -737,9 +644,9 @@ for t = kStart:kEnd
     mTotalMelt = mTotalMelt - (((mSnowMelt * kRho_snow / 1000) + ...
         (mIceMelt * kRho_ice / 1000)));
     % Total sublimation (m w.e.)
-    mTotalSub = mTotalSub + mSub;
+    mTotalSub = mTotalSub - mSub;
     % Total evaporation (m w.e.)
-    mTotalEvap = mTotalEvap + mEvap;
+    mTotalEvap = mTotalEvap - mEvap;
     % Total mass balance (m w.eq.)
     mDeltaM_net = (mTotalMelt + mTotalAccum + mTotalSub);                   % Evaporation not included because melt is assumed to runoff currently    
     
@@ -777,8 +684,9 @@ for t = kStart:kEnd
     elseif nansum(nansum(mPrecip)) == 0
         RAve.PrecipFrac(t) = nan;
     end
-
-%     m3TotalMelt(:,:,t) = mTotalMelt;
+    
+%FOR SAVING FULLY DISTRIBUTED VARIABLES
+    m3TotalMelt(:,:,t) = mTotalMelt;
 %     m3TotalAccum(:,:,t) = mTotalAccum;
 %     m3Alpha(:,:,t) = mAlpha;
 %     m3S_net(:,:,t) = mS_net;
@@ -842,12 +750,15 @@ R2.TotalAveEvap = nanmean(mTotalEvap(mGlacMask == 1));
 % % Display total accumulation (m)
 % disp(['Total average accumulation ',num2str(R.TotalAveAccum),' meters'])
 
+%AG COMMENTED TO SEE WHAT VARS CAN BE SAVED:
 clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
     mTotalMelt mTotalAccum m3Alpha m3S_net m3L_out m3L_in m3Q_S m3Q_L m3Q_P ...
     m3T_s_Act_s m3T_s_Act_2 m3T_a m3Precip m3Q_net m3Q_m m3T_a m3Precipitation ...
     m3Rain_Freeze_Amount m3TotalMelt m3TotalAccum mGlacMask mGlacAlt ...
-    mTotalMelt_1975 mTotalAccum_1975
-
+    mTotalMelt_1975 mTotalAccum_1975 mTotalSub mTotalEvap
+%   
+% % These lines convert the 3D variables from double precision to single 
+% % precision to save space and time.
 % m3TotalMelt = single(m3TotalMelt);
 % m3TotalAccum = single(m3TotalAccum);
 % m3Alpha = single(m3Alpha);
@@ -863,7 +774,13 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % m3Precipitation = single(m3Precipitation);
 % m3Rain_Freeze_Amount = single(m3Rain_Freeze_Amount);
 
-save([GUI_Input.output_filename, num2str(iGlacierNumber),', Ensemble # ',num2str(GUI_Input.ensemble_number),'.mat'])
+varinfo=whos('m3TotalMelt');
+saveopt='';
+if varinfo.bytes >= 2^31
+  saveopt='-v7.3';
+end
+
+save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AGm3.mat'],saveopt)
 
 % else
 %     

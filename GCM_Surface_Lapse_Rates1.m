@@ -1,4 +1,4 @@
-function [ vLapseRates ] = GCM_Surface_Lapse_Rates1( sGCM, kLat, kLong )
+function [ vLapseRates ] = GCM_Surface_Lapse_Rates1( sGCM, sTempRes, kLat, kLong )
 %% Extract surface temperature lapse rates from FLOR, HAR, or WRF
 
 
@@ -20,52 +20,82 @@ addpath(genpath(sFileDirectory))
 
 %% Load temperature data
 
-m3T_a_3x3 = [];
-
 % HAR
 if strcmp(sGCM,'HAR')
     
-    mLat = double(ncread('har_d10km_d_2d_lwdown_2001.nc', 'lat'));
-    mLong = double(ncread('har_d10km_d_2d_lwdown_2001.nc','lon'));
+    mLat = double(ncread('har_d10km_h_2d_t2_2001.nc', 'lat'));
+    mLong = double(ncread('har_d10km_h_2d_t2_2001.nc','lon'));
 
     vLat = mLat(:);
     vLong = mLong(:);
 
     [~, iLatLongIdx] = min((vLat - kLat).^2 + (vLong - kLong).^2);
-    [m_Idx, n_Idx] = ind2sub([180, 270], iLatLongIdx);
+    [m_Idx, n_Idx] = ind2sub([270, 180], iLatLongIdx);
     
     m3T_a_3x3 = [];
 
-    for i = 0:14
+    if strcmp(sTempRes,'hourly')
+        
+        for i = 0:14
 
-        if i < 10
-            sFileName = ['har_d10km_h_2d_t2_200', num2str(i), '.nc'];
-        else
-            sFileName = ['har_d10km_h_2d_t2_20', num2str(i), '.nc'];
+            if i < 10
+                sFileName = ['har_d10km_h_2d_t2_200', num2str(i), '_rechunked.nc'];
+            else
+                sFileName = ['har_d10km_h_2d_t2_20', num2str(i), '_rechunked.nc'];
+            end
+
+            if rem(i,4) == 0
+                Leap = 1;
+            else
+                Leap = 0;
+            end
+
+            vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[n_Idx-1,180-m_Idx,1], [3,3,8760+24*Leap], [1,1,1])));
+            m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
+
         end
-
-        if rem(i,4) == 0
-            Leap = 1;
-        else
-            Leap = 0;
+        
+        % Convert Kelvin to Celsius
+        m3T_a_3x3 = m3T_a_3x3 - 273.15;
+        
+        % Remove leap day data
+        m3T_a_3x3(:,:,[24*58+1:24*59,24*1518+1:24*1519,24*2978+1:24*2979,24*4438+1:24*4439]) = [];
+        % Average hourly data for each day
+        m3HA_Daily_Temp = zeros(size(m3T_a_3x3,1),size(m3T_a_3x3,2),size(m3T_a_3x3,3)/24);
+        
+        for t = 1:size(m3T_a_3x3,3)/24
+            m3HA_Daily_Temp(:,:,t) = mean(m3T_a_3x3(:,:,(t-1)*24+1:t*24),3); 
         end
+        
+    elseif strcmp(sTempRes,'daily')
+        
+        for i = 0:14
 
-        vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[n_Idx-1,180-m_Idx,1], [3,3,8760+24*Leap], [1,1,1])));
-        m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
+            if i < 10
+                sFileName = ['har_d10km_d_2d_t2_200', num2str(i), '_rechunked.nc'];
+            else
+                sFileName = ['har_d10km_d_2d_t2_20', num2str(i), '_rechunked.nc'];
+            end
 
-    end
+            if rem(i,4) == 0
+                Leap = 1;
+            else
+                Leap = 0;
+            end
 
-    % Convert Kelvin to Celsius
-    m3T_a_3x3 = m3T_a_3x3 - 273;
-    
-    % Remove leap day data
-    m3T_a_3x3(:,:,[24*58+1:24*59,24*1518+1:24*1519,24*2978+1:24*2979,24*4438+1:24*4439]) = [];
-    
-    % Average hourly data for each day
-    m3HA_Daily_Temp = zeros(size(m3T_a_3x3,1),size(m3T_a_3x3,2),size(m3T_a_3x3,3)/24);
-    
-    for t = 1:size(m3T_a_3x3,3)/24
-        m3HA_Daily_Temp(:,:,t) = mean(m3T_a_3x3(:,:,(t-1)*24+1:t*24),3); 
+            vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[n_Idx-1,180-m_Idx,1], [3,3,365+Leap], [1,1,1])));
+            m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
+
+        end
+        
+        % Convert Kelvin to Celsius
+        m3T_a_3x3 = m3T_a_3x3 - 273.15;
+        
+        % Remove leap day data
+        m3T_a_3x3(:,:,[59,1519,2979,4439]) = [];
+        % Average hourly data for each day
+        m3HA_Daily_Temp = m3T_a_3x3;
+        
     end
     
     % Average daily data for each year

@@ -94,7 +94,7 @@ vWindSpeed = squeeze(m3WindSpeed(:,:,:,iEnsNum));
 %% Other Data
 
 % Temporal resolution of the raw data (minutes)
-Data.Resolution = 60*24;
+Data.Resolution_mins = 60*24;
 Data.AWS_Lat = kLat;
 Data.AWS_Long = kLong;
 Data.TimeZone = 0;

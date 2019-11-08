@@ -1,52 +1,55 @@
-function [ mSW_in_dir_Sl_As ] = Calc_SW_in_dir_Sl_As1( mSW_in_dir, mLat, mLong, mGlacAlt, mSlope, mAspect, sTime, mGlacMask, t )
+function [ mSW_in_dir_Sl_As ] = Calc_SW_in_dir_Sl_As1( mSW_in_dir, mLat, mLong, mGlacAlt, mSlope, mAspect, sTime, mGlacMask, kTimeStep_days, sGCM, t )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
+
+
 if nansum(mSW_in_dir(:)) > 0
+    
+    % Date and time for solar radiation calculation
+    time.year = sTime.year(t);
+    time.month = sTime.month(t);
+    time.day = sTime.day(t);
+    time.hour = sTime.hour(t);
+    time.min = 0;
+    time.sec = 0;
+    
+    % Set time zone for HAR vs FLOR
+    if strcmp(sGCM,'HAR')
+        time.UTC = 5; 
+    elseif strcmp(sGCM,'FLOR')
+        time.UTC = 0;
+    end
 
-%% Calculate date and time for solar radiation calculation
+    if kTimeStep_days < 1
+    
+        %% Hourly calculations
 
-time.year = sTime.year(t);
-time.month = sTime.month(t);
-time.day = sTime.day(t);
-time.hour = sTime.hour(t);
-time.min = 0;
-time.sec = 0;
-time.UTC = 5;
+        [mSunZenith, mSunAzimuth] = sun_position_parfor_matrix(time,mLat,mLong,mGlacAlt);
 
-% Preallocate for 'for loop'
-mSunZenith = zeros(size(mGlacMask));
-mSunAzimuth = zeros(size(mGlacMask));
+        mCos_Theta = abs(cosd(mSlope) .* cosd(mSunZenith) + sind(mSlope) .* sind(mSunZenith) .* cosd(mSunAzimuth - mAspect));
 
-% parfor m = 1:size(mGlacMask,1)
-%     
-%     vSunZenith_temp = zeros(1,size(mGlacMask,2));
-%     vSunAzimuth_temp = zeros(1,size(mGlacMask,2));
-%     
-%     for n = 1:size(mGlacMask,2)
-% 
-%         if mGlacMask(m,n) == 1
-% 
-%             longitude = mLong(m,n);
-%             latitude = mLat(m,n);
-%             altitude = mGlacAlt(m,n);
+    elseif kTimeStep_days >= 1
+
+       %% Daily calculations
+       
+%        m3SW_in = zeros([size(mGlacMask),24]);
+%        
+%         for g = 1:24
 %             
-%             [zenith, azimuth] = sun_position_parfor(time,latitude,longitude,altitude);
+%             time.hour = sTime.hour(g);
 %             
-%             vSunZenith_temp(n) = zenith;
-%             vSunAzimuth_temp(n) = azimuth;
+%             [mSunZenith, mSunAzimuth] = sun_position_parfor_matrix(time,mLat,mLong,mGlacAlt);
 % 
+%             mCos_Theta = abs(cosd(mSlope) .* cosd(mSunZenith) + sind(mSlope) .* sind(mSunZenith) .* cosd(mSunAzimuth - mAspect));
+%             
 %         end
-% 
-%     end
-%     
-%     mSunZenith(m,:) = vSunZenith_temp;
-%     mSunAzimuth(m,:) = vSunAzimuth_temp;
-% 
-% end
-[mSunZenith, mSunAzimuth] = sun_position_parfor_matrix(time,mLat,mLong,mGlacAlt);
+        
+    mCos_Theta = 1; % Not currently downscaling SW_in for daily runs
+        
+        
+    end
 
-mCos_Theta = abs(cosd(mSlope) .* cosd(mSunZenith) + sind(mSlope) .* sind(mSunZenith) .* cosd(mSunAzimuth - mAspect));
 
 else
 
