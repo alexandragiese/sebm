@@ -20,7 +20,7 @@ for t = 1:nansum(mGlacMask(:))
     
     R = sqrt((mLong_UTM-iLong_UTM).^2 + (mLat_UTM-iLat_UTM).^2);
     Z = (mGlacAlt-iGlacAlt);
-    
+
     mTangents = Z./R;
 
     %% Create cirle of radius kRadius with kN points in the circle

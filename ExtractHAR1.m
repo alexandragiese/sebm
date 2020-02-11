@@ -354,6 +354,8 @@ if strcmp(sRes,'hourly')
     stTime.min = zeros(size(stTime.year));
     stTime.sec = zeros(size(stTime.year));
     stTime.UTC = 5;
+    
+    
 
 elseif strcmp(sRes,'daily')
     
@@ -497,7 +499,7 @@ elseif strcmp(sRes,'daily')
     end
 
     % Convert to m / hr
-    Precip = Precip / 1000;
+    Precip = Precip * 24 / 1000;
 
     %% Pressure (hPa)
 

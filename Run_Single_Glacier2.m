@@ -32,9 +32,10 @@ vModel_MB_2000_to_2016 = NaN(length(vJosh_Object_ID),1);
 vModel_MB = NaN(length(vJosh_Object_ID),1);
 
 
-GUI_Input.glacier_number = 56076;
+GUI_Input.glacier_number = 56076; %CHHOTA SHIRGI
 
 [R1, R2, RAve] = Full_Model_v3( GUI_Input );
+% OLD: if strcmp(vcJosh_Category{r}(2:end-1),'Clean') && vJosh_PctDeb(r) <= 10
 
 % % save(['Josh_MB_Glacier_Num_',num2str(GUI_Input.glacier_number),'_',GUI_Input.sGCM,'_temp_saveAG.mat'])
 % save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'JoshMB_AGm3.mat'])

@@ -1,51 +1,40 @@
 function [R1, R2, RAve] = Full_Model_v3( GUI_Input )
 
 % addpath(genpath('/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/Full_Model_v2.000'));
-addpath('/uufs/chpc.utah.edu/common/home/u6027899/SEBM_from_Eric_Nov5');
-
-%% Load files
-mGlacNum    = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum'); %***
-%mGlacNum    = load('ASTER_30m_Numbers.mat','mGlacNum');
-mGlacNum    = mGlacNum.mGlacNum;
-mDebrisMask = load('ALOS_90m_Debris_Mask_Ind_Gang_Brahm1_forAG.mat','mDebrisMask_90m'); % Added 11/15/19 -ESJ ***
-%mDebrisMask = load('ASTER_30m_Debris_Mask.mat','mDebrisMask'); 
-mDebrisMask = mDebrisMask.mDebrisMask_90m; % Added 11/15/19 -ESJ
-
+addpath('/uufs/chpc.utah.edu/common/home/u6027899/SEBM_from_Eric_Oct25');
 %% Specifics for larger region of interest
 
-kColLn = 15600; %size(mGlacNum,1); %ACTUALLY NUMBER OF ROWS, EJ: 15600; 
-kRowLn = 45600; %size(mGlacNum,2); %ACTYALLY NUMBER OF COL,  EJ: 45600; 
+kColLn = 15600;
+kRowLn = 45600;
 
 %% Glacier to extract
 
 iGlacierNumber = GUI_Input.glacier_number; 
-% data = ncread(netcdfFilename,varName,[1,1,r],[m n 1]);
 
+mGlacNum = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum');
+mGlacNum = mGlacNum.mGlacNum;
 
-% Border (in matrix indices) necessary for sky view factor calculation
-kBorder     = 200;
-% Create matrix of 100x100 tile numbers identical in total size to DEM
+% Border necessary for sky view factor calculation
+kBorder = 200;
+% Create matrix of 100x100 tile numbers
 mTileNumber = reshape(1:kColLn*kRowLn/10000,[kRowLn/100 kColLn/100])';
 mTileNumber = kron(mTileNumber,ones(100,100));
-
 % Find indices of glacier edges
-[row, col]  = find(mGlacNum==iGlacierNumber); 
+[row, col] = find(mGlacNum==iGlacierNumber);
 iM_i = floor(min(row)/100)*100 - kBorder;
 iM_f = ceil(max(row)/100)*100 + kBorder;
 iN_i = floor(min(col)/100)*100 - kBorder;
 iN_f = ceil(max(col)/100)*100 + kBorder;
 mTileNumber_Extract = mTileNumber(iM_i+1:iM_f,iN_i+1:iN_f);
-vTileNumbers        = unique(mTileNumber_Extract); 
-mGlacNum_Extract    = mGlacNum(iM_i+1:iM_f,iN_i+1:iN_f);                       % Added 11/15/19 -ESJ
-% mDebrisMask_Extract = mDebrisMask(iM_i+kBorder+1:iM_f-kBorder,iN_i+kBorder+1:iN_f-kBorder); % Added 11/15/19 -ESJ
-mDebrisMask_Extract = mDebrisMask(floor(min(row)/100)*100+1:ceil(max(row)/100)*100,floor(min(col)/100)*100+1:ceil(max(col)/100)*100); % equivalently.  Buffer unnecessary for deb
+vTileNumbers = unique(mTileNumber_Extract);
+mGlacNum_Extract = mGlacNum(iM_i+1:iM_f,iN_i+1:iN_f);
 
 % Remove large, unnecessary variables
-clearvars mTileNumbers mDebrisMask                                          % Modified 11/15/19 -ESJ
+clearvars mTileNumbers
 
 % Extract DEMs and Masks for given glacier
-mDEM    = zeros(size(mTileNumber_Extract));
-mMask   = zeros(size(mTileNumber_Extract));
+mDEM = zeros(size(mTileNumber_Extract));
+mMask = zeros(size(mTileNumber_Extract));
 
 for t = 1:length(vTileNumbers)
     
@@ -53,8 +42,7 @@ for t = 1:length(vTileNumbers)
     
     try % Try to load tile block
 %         load(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/mExtract_MxN_Ind_Gang_Brahm_HAR/Extract_MxN_',num2str(iTileNumber),'.mat'],'mM','mN')
-        load(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/m100x100_DEMs_and_Masks_Ind_Gang_Brahm/Glacier_DEM_90m_',num2str(iTileNumber),'.mat'],'mGlacAlt','mGlacMask') %???
-
+        load(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/m100x100_DEMs_and_Masks_Ind_Gang_Brahm/Glacier_DEM_90m_',num2str(iTileNumber),'.mat'],'mGlacAlt','mGlacMask')
     catch % If tile block is unused, replace with NaNs
         mGlacAlt = zeros(100,100);
         mGlacMask = zeros(100,100);
@@ -68,29 +56,29 @@ end
 % Remove other glaciers from the glacier mask
 mMask(mGlacNum_Extract ~= iGlacierNumber) = 0;
 
-mGlacAlt    = mDEM;
-mGlacMask   = mMask;
-mDebMask    = mDebrisMask_Extract;
-% Make lat/lon matrices
-vLat    = (linspace(25.0000,38.0000,kColLn))';
-mLat    = flipud(repmat(vLat,1,kRowLn));
-mLat    = mLat(iM_i+1:iM_f,iN_i+1:iN_f);
-vLong   = linspace(67.0000,105.0000,kRowLn);%hard coding!!!
-mLong   = repmat(vLong,kColLn,1);
-mLong   = mLong(iM_i+1:iM_f,iN_i+1:iN_f);
+mGlacAlt = mDEM;
+mGlacMask = mMask;
 
-kLat    = nanmean(mLat(mMask==1)); % Find average latitude of glacier
-kLong   = nanmean(mLong(mMask==1)); % Find average longitude of glacier
+% Make lat/lon matrices
+vLat = (linspace(25.0000,38.0000,kColLn))';
+mLat = flipud(repmat(vLat,1,kRowLn));
+mLat = mLat(iM_i+1:iM_f,iN_i+1:iN_f);
+vLong = linspace(67.0000,105.0000,kRowLn);
+mLong = repmat(vLong,kColLn,1);
+mLong = mLong(iM_i+1:iM_f,iN_i+1:iN_f);
+
+kLat = nanmean(mLat(mMask==1)); % Find average latitude of glacier
+kLong = nanmean(mLong(mMask==1)); % Find average longitude of glacier
 
 clearvars mGlacNum mTileNumber row col iM_i iM_f iN_i iN_f ...
     vTileNumbers mGlacNum_Extract mDEM mMask t iTileNumber mM_Temp mN_Temp
 
 %% Glacier slope and view factor
 
-iLat_min    = min(mLat(:));
-iLat_max    = max(mLat(:));
-iLong_min   = min(mLong(:));
-iLong_max   = max(mLong(:));
+iLat_min = min(mLat(:));
+iLat_max = max(mLat(:));
+iLong_min = min(mLong(:));
+iLong_max = max(mLong(:));
 
 % Calculate geographic reference matrix for 100x100 grid
 R_Geo = makerefmat('RasterSize',size(mGlacMask),'Latlim',[iLat_min, iLat_max],...
@@ -103,23 +91,23 @@ kRadius = 98;
 [mSVF] = SkyViewFactor1(mGlacMask,mGlacAlt,mLat,mLong,kRadius); % Gridcells (1 gridcell = 90m)
 mSVF(isnan(mSVF) == 1) = 1;
 
-%% Remove added borders (--> mGlacMask to final size)
+%% Remove added borders
 
 mGlacMask(1:kBorder,:) = []; mGlacMask(end-kBorder+1:end,:) = [];
 mGlacMask(:,1:kBorder) = []; mGlacMask(:,end-kBorder+1:end) = [];
-mGlacAlt(1:kBorder,:)   = []; mGlacAlt(end-kBorder+1:end,:) = [];
-mGlacAlt(:,1:kBorder)   = []; mGlacAlt(:,end-kBorder+1:end) = [];
-mSlope(1:kBorder,:)     = []; mSlope(end-kBorder+1:end,:) = [];
-mSlope(:,1:kBorder)     = []; mSlope(:,end-kBorder+1:end) = [];
-mAspect(1:kBorder,:)    = []; mAspect(end-kBorder+1:end,:) = [];
-mAspect(:,1:kBorder)    = []; mAspect(:,end-kBorder+1:end) = [];
-mSVF(1:kBorder,:)   = []; mSVF(end-kBorder+1:end,:) = [];
-mSVF(:,1:kBorder)   = []; mSVF(:,end-kBorder+1:end) = [];
-mLat(1:kBorder,:)   = []; mLat(end-kBorder+1:end,:) = [];
-mLat(:,1:kBorder)   = []; mLat(:,end-kBorder+1:end) = [];
-mLong(1:kBorder,:)  = []; mLong(end-kBorder+1:end,:) = [];
-mLong(:,1:kBorder)  = []; mLong(:,end-kBorder+1:end) = [];
-  
+mGlacAlt(1:kBorder,:) = []; mGlacAlt(end-kBorder+1:end,:) = [];
+mGlacAlt(:,1:kBorder) = []; mGlacAlt(:,end-kBorder+1:end) = [];
+mSlope(1:kBorder,:) = []; mSlope(end-kBorder+1:end,:) = [];
+mSlope(:,1:kBorder) = []; mSlope(:,end-kBorder+1:end) = [];
+mAspect(1:kBorder,:) = []; mAspect(end-kBorder+1:end,:) = [];
+mAspect(:,1:kBorder) = []; mAspect(:,end-kBorder+1:end) = [];
+mSVF(1:kBorder,:) = []; mSVF(end-kBorder+1:end,:) = [];
+mSVF(:,1:kBorder) = []; mSVF(:,end-kBorder+1:end) = [];
+mLat(1:kBorder,:) = []; mLat(end-kBorder+1:end,:) = [];
+mLat(:,1:kBorder) = []; mLat(:,end-kBorder+1:end) = [];
+mLong(1:kBorder,:) = []; mLong(end-kBorder+1:end,:) = [];
+mLong(:,1:kBorder) = []; mLong(:,end-kBorder+1:end) = [];
+    
 %% Extract GCM Data    
 
 sGCM = GUI_Input.sGCM;
@@ -152,43 +140,43 @@ kAWS_Alt = Data.AWS_Alt;
 %% Start and End Dates
 
 % Start Date
-StartMonth  = str2double(GUI_Input.start_date(1:2));
-StartDay    = str2double(GUI_Input.start_date(4:5));
-StartYear   = str2double(GUI_Input.start_date(7:10));
+StartMonth = str2double(GUI_Input.start_date(1:2));
+StartDay = str2double(GUI_Input.start_date(4:5));
+StartYear = str2double(GUI_Input.start_date(7:10));
 
-kStartDay   = find(stTime.day==StartDay & stTime.month==StartMonth & stTime.year==StartYear,1,'first');
+kStartDay = find(stTime.day==StartDay & stTime.month==StartMonth & stTime.year==StartYear,1,'first');
 
 % End Date
-EndMonth    = str2double(GUI_Input.end_date(1:2));
-EndDay      = str2double(GUI_Input.end_date(4:5));
-EndYear     = str2double(GUI_Input.end_date(7:10));
+EndMonth = str2double(GUI_Input.end_date(1:2));
+EndDay = str2double(GUI_Input.end_date(4:5));
+EndYear = str2double(GUI_Input.end_date(7:10));
 
-kEndDay     = find(stTime.day==EndDay & stTime.month==EndMonth & stTime.year==EndYear,1,'first');
+kEndDay = find(stTime.day==EndDay & stTime.month==EndMonth & stTime.year==EndYear,1,'first');
 
 % Date to start recording MB (1975-2000)
 MBMonth1975 = str2double(GUI_Input.mb_date_1975(1:2));
-MBDay1975   = str2double(GUI_Input.mb_date_1975(4:5));
-MBYear1975  = str2double(GUI_Input.mb_date_1975(7:10));
+MBDay1975 = str2double(GUI_Input.mb_date_1975(4:5));
+MBYear1975 = str2double(GUI_Input.mb_date_1975(7:10));
 
 kMBDay1975 = find(stTime.day==MBDay1975 & stTime.month==MBMonth1975 & stTime.year==MBYear1975,1,'first');
 
 % Date to start recording MB (2000-20116)
 MBMonth2000 = str2double(GUI_Input.mb_date_2000(1:2));
-MBDay2000   = str2double(GUI_Input.mb_date_2000(4:5));
-MBYear2000  = str2double(GUI_Input.mb_date_2000(7:10));
+MBDay2000 = str2double(GUI_Input.mb_date_2000(4:5));
+MBYear2000 = str2double(GUI_Input.mb_date_2000(7:10));
 
-kMBDay2000  = find(stTime.day==MBDay2000 & stTime.month==MBMonth2000 & stTime.year==MBYear2000,1,'first');
+kMBDay2000 = find(stTime.day==MBDay2000 & stTime.month==MBMonth2000 & stTime.year==MBYear2000,1,'first');
 
 %% Time Step
 
 % Data resolution (minutes)
 kData_Resolution = Data.Resolution_mins;
 % Time step (days)
-kTimeStep_days  = kData_Resolution / (24 * 60);   
+kTimeStep_days = kData_Resolution / (24 * 60);   
 % Time step (seconds)
-kTimeStep_sec   = kTimeStep_days * 24 * 60 * 60;
+kTimeStep_sec = kTimeStep_days * 24 * 60 * 60;
 % Number of timesteps in one day
-kN_per_Day      = 1 ./ kTimeStep_days;
+kN_per_Day = 1 ./ kTimeStep_days;
 
 %% Inputs
 
@@ -201,12 +189,12 @@ kRho_snow = GUI_Input.snow_density;
 kDeltaT_a = GUI_Input.temp_forcing;
 
 % Roughness length
-kZ_0m_snow  = GUI_Input.iZ_0m_snow;
-kZ_0m_ice   = GUI_Input.iZ_0m_ice;
-kZ_0T_snow  = GUI_Input.iZ_0T_snow;
-kZ_0T_ice   = GUI_Input.iZ_0T_ice;
-kZ_0q_snow  = GUI_Input.iZ_0q_snow;
-kZ_0q_ice   = GUI_Input.iZ_0q_ice;
+kZ_0m_snow = GUI_Input.iZ_0m_snow;
+kZ_0m_ice = GUI_Input.iZ_0m_ice;
+kZ_0T_snow = GUI_Input.iZ_0T_snow;
+kZ_0T_ice = GUI_Input.iZ_0T_ice;
+kZ_0q_snow = GUI_Input.iZ_0q_snow;
+kZ_0q_ice = GUI_Input.iZ_0q_ice;
 
 % Precipitation event threshold (m day^-1)
 kPrecipThresh = GUI_Input.precip_threshold;
@@ -371,7 +359,7 @@ RAve.Rain_Freeze_Energy = zeros(length(vTime),1);
 RAve.Rain_Freeze_Amount = zeros(length(vTime),1);
 
 %FOR SAVING FULLY DISTRIBUTED VARIABLES - PREALLOCATE SPACE
-% m3TotalMelt = zeros([size(mGlacMask),kEnd-kStart+1]); %Total Melt (mm/time)
+m3TotalMelt = zeros([size(mGlacMask),kEnd-kStart+1]); %Total Melt (mm/time)
 % m3TotalAccum= zeros([size(mGlacMask),kEnd-kStart+1]); %Total Acc (mm/time)
 % m3Alpha     = zeros([size(mGlacMask),kEnd-kStart+1]); %Albedo (-)
 % m3S_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %New SW (W/m^2)
@@ -408,19 +396,9 @@ t
 
     %% Calculate air pressure gradient with the hydrostatic equation (hPa/m)
     
-    % Calculate day of the year
-    iDay = datetime(stTime.year(t),stTime.month(t),stTime.day(t)); 
-    iDay = day(iDay,'dayofyear');
-    iLapseRate = vLapseRates_smooth(iDay);
-    
-    % Impose limits on lapse rates? (beta testing)
-    if iLapseRate < 3
-        iLapseRate = 3;
-    elseif iLapseRate > 9.8
-        iLapseRate = 9.8;
-    end
-
     % Adjust air temperature for elevation (input lapse rate should be positive)
+    iLapseRate = vLapseRates_smooth(stTime.day(t));
+
     mT_a = (vT_a(t) - (mGlacAlt - kAWS_Alt) * iLapseRate / 1000) .* ...
     mGlacMask;
 
@@ -558,10 +536,7 @@ t
     mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L + mQ_P + mQ_G) ...
         .* mGlacMask;
 
-    %% Surface temperature: equations explained in equations 11 and 12 of Arnold et al., 2006
-% The difference between the implicit method form (the one in the manuscript) and the 
-% explicit form (the model that you're currently working with) is the incorporation of 
-% equations 11 and 12 of Arnold et al., 2006.
+    %% Surface temperature
 
     % Calculate change in temperature of top 2 layers for this timestep (K)   
     mDelta_T_s = (( mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
@@ -612,12 +587,22 @@ t
     mQ_m(mT_s_Theor_s > 0) = mT_s_Theor_s(mT_s_Theor_s > 0) * kC_i .* ...
         mRho_s(mT_s_Theor_s > 0) * kLayerThick_s / kTimeStep_sec;
 
-    %% Melting
+    %% Mass loss: melting and sublimation 
+
     % Snow melt (m)
     mSnowMelt = mQ_m * kTimeStep_sec / (kL_f * kRho_snow);
 
-    % Adjust snow depth for melt (m)
-    mSnowDepth = (mSnowDepth - mSnowMelt) .* mGlacMask;            
+    % Sublimation (m)
+    mSub = zeros(size(mGlacMask));
+    mSub(mQ_L < 0) = -mQ_L(mQ_L < 0) .* kTimeStep_sec ./ (kL_s * kRho_snow) .* mGlacMask(mQ_L < 0);                                       % Thiery et al., 2012 "Surface and snowdrift sublimation at Princess Elisabeth station, East Antarctica"
+
+    % Evaporation (m)
+    mEvap = zeros(size(mGlacMask));
+    mEvap(mT_s_Act_s >= 0) = -mQ_L(mT_s_Act_s >= 0) / (kL_v * kRho_snow) * ...
+    (15 * 60) .* mGlacMask(mT_s_Act_s >= 0);  
+
+    % Adjust snow depth for melt and sublimation (m)
+    mSnowDepth = (mSnowDepth - mSnowMelt - mSub - mEvap) .* mGlacMask;            
     
     %% If no snow, melt ice
     
@@ -630,31 +615,6 @@ t
     mIceMelt = -mXS_SnowMelt * kRho_snow / kRho_ice;
     % Cumulative ice melt (m)
     mIceSurface = mIceSurface - mIceMelt;
-    
-    %% Sublimation and evaporation
-    
-    % Sublimation (m)
-    mSub = zeros(size(mGlacMask));
-    mSub(mQ_L < 0 & mT_s_Act_s < 0) = -mQ_L(mQ_L < 0 & mT_s_Act_s < 0) .* kTimeStep_sec ./ (kL_s * kRho_snow) .* mGlacMask(mQ_L < 0 & mT_s_Act_s < 0);  
-    
-    % Evaporation (m)
-    mEvap = zeros(size(mGlacMask));
-    mEvap(mQ_L < 0 & mT_s_Act_s >= 0) = -mQ_L(mQ_L < 0 & mT_s_Act_s >= 0) .* kTimeStep_sec ./ (kL_v * kRho_snow) .* mGlacMask(mQ_L < 0 & mT_s_Act_s >= 0);  
-    
-    % Adjust snow depth for sublimation (m)
-    mSnowDepth = (mSnowDepth - mSub) .* mGlacMask; 
-    
-    %% If no snow, melt ice
-    
-    % Find negative snow depths
-    mXS_SnowSub = zeros(size(mGlacMask));
-    mXS_SnowSub(mSnowDepth < 0) = mSnowDepth(mSnowDepth < 0);
-    % Set negative snow depths to zero
-    mSnowDepth(mSnowDepth < 0) = 0;
-    % Ice melt (m)
-    mIceSub = -mXS_SnowSub * kRho_snow / kRho_ice;
-    % Cumulative ice melt (m)
-    mIceSurface = mIceSurface - mIceSub;
     
     %% Melt/refreeze in the second layer
     
@@ -684,9 +644,9 @@ t
     mTotalMelt = mTotalMelt - (((mSnowMelt * kRho_snow / 1000) + ...
         (mIceMelt * kRho_ice / 1000)));
     % Total sublimation (m w.e.)
-    mTotalSub = mTotalSub - (mSub .* kRho_snow / 1000);
+    mTotalSub = mTotalSub - mSub;
     % Total evaporation (m w.e.)
-    mTotalEvap = mTotalEvap - (mEvap .* kRho_snow / 1000);
+    mTotalEvap = mTotalEvap - mEvap;
     % Total mass balance (m w.eq.)
     mDeltaM_net = (mTotalMelt + mTotalAccum + mTotalSub);                   % Evaporation not included because melt is assumed to runoff currently    
     
@@ -726,7 +686,7 @@ t
     end
     
 %FOR SAVING FULLY DISTRIBUTED VARIABLES
-%     m3TotalMelt(:,:,t) = mTotalMelt;
+    m3TotalMelt(:,:,t) = mTotalMelt;
 %     m3TotalAccum(:,:,t) = mTotalAccum;
 %     m3Alpha(:,:,t) = mAlpha;
 %     m3S_net(:,:,t) = mS_net;
@@ -790,14 +750,15 @@ R2.TotalAveEvap = nanmean(mTotalEvap(mGlacMask == 1));
 % % Display total accumulation (m)
 % disp(['Total average accumulation ',num2str(R.TotalAveAccum),' meters'])
 
+%AG COMMENTED TO SEE WHAT VARS CAN BE SAVED:
 clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
     mTotalMelt mTotalAccum m3Alpha m3S_net m3L_out m3L_in m3Q_S m3Q_L m3Q_P ...
     m3T_s_Act_s m3T_s_Act_2 m3T_a m3Precip m3Q_net m3Q_m m3T_a m3Precipitation ...
     m3Rain_Freeze_Amount m3TotalMelt m3TotalAccum mGlacMask mGlacAlt ...
-    mTotalMelt_1975 mTotalAccum_1975 mTotalSub mTotalEvap Data mDebMask
-
-% These lines convert the 3D variables from double precision to single                                                                                   785
-% precision to save space and time.  
+    mTotalMelt_1975 mTotalAccum_1975 mTotalSub mTotalEvap
+%   
+% % These lines convert the 3D variables from double precision to single 
+% % precision to save space and time.
 % m3TotalMelt = single(m3TotalMelt);
 % m3TotalAccum = single(m3TotalAccum);
 % m3Alpha = single(m3Alpha);
@@ -813,15 +774,13 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % m3Precipitation = single(m3Precipitation);
 % m3Rain_Freeze_Amount = single(m3Rain_Freeze_Amount);
 
-%         if strcmp(GUI_Input.sGCM,'HAR')
-%             
-%             save(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Files_For_Ali/Results/Josh_MB_',GUI_Input.sGCM,'_',GUI_Input.HAR_temp_res,'_Glacier_Number_',num2str(iGlacierNumber),'.mat'])
-%                 
-%         elseif strcmp(GUI_Input.sGCM,'FLOR')
-%             
-%             save(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Files_For_Ali/Results/Josh_MB_',GUI_Input.sGCM,'_Glacier_Number_',num2str(iGlacierNumber),'.mat'])
-%                 
-%         end
+varinfo=whos('m3TotalMelt');
+saveopt='';
+if varinfo.bytes >= 2^31
+  saveopt='-v7.3';
+end
+
+save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AGm3.mat'],saveopt)
 
 % else
 %     
@@ -835,16 +794,25 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 
 % end
 
-% varinfo=whos('m3TotalMelt');
-% saveopt='';
-% if varinfo.bytes >= 2^31
-%   saveopt='-v7.3';
-% end
-
-% save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AGm3_Nov5.mat'],saveopt)
-save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AGm3_Nov15b.mat'])
 
 
 
 
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

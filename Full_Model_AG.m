@@ -1,83 +1,55 @@
-function [R1, R2, RAve] = Full_Model_v3( GUI_Input )
+function [R1, R2, RAve] = Full_Model_AG( GUI_Input )
 
-% addpath(genpath('/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/Full_Model_v2.000'));
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/SEBM_from_Eric_Nov5');
 
 %% Load files
-mGlacNum    = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum'); %***
-%mGlacNum    = load('ASTER_30m_Numbers.mat','mGlacNum');
+% mGlacNum    = load('ALOS_90m_Glacier_Numbers_Ind_Gang_Brahm1.mat','mGlacNum'); %***
+mGlacNum    = load('ASTER_30m_Numbers.mat','mGlacNum');
 mGlacNum    = mGlacNum.mGlacNum;
-mDebrisMask = load('ALOS_90m_Debris_Mask_Ind_Gang_Brahm1_forAG.mat','mDebrisMask_90m'); % Added 11/15/19 -ESJ ***
-%mDebrisMask = load('ASTER_30m_Debris_Mask.mat','mDebrisMask'); 
-mDebrisMask = mDebrisMask.mDebrisMask_90m; % Added 11/15/19 -ESJ
+% mDebrisMask = load('ALOS_90m_Debris_Mask_Ind_Gang_Brahm1_forAG.mat','mDebrisMask_90m'); % Added 11/15/19 -ESJ ***
+% mDebrisMask = mDebrisMask.mDebrisMask_90m; % Added 11/15/19 -ESJ
+mDebrisMask = load('ASTER_30m_Debris_Mask.mat','mDebrisMask'); 
+mDebrisMask = mDebrisMask.mDebrisMask; 
 
 %% Specifics for larger region of interest
 
-kColLn = 15600; %size(mGlacNum,1); %ACTUALLY NUMBER OF ROWS, EJ: 15600; 
-kRowLn = 45600; %size(mGlacNum,2); %ACTYALLY NUMBER OF COL,  EJ: 45600; 
+kColLn = size(mGlacNum,1); %ACTUALLY NUMBER OF ROWS, EJ: 15600; 
+kRowLn = size(mGlacNum,2); %ACTYALLY NUMBER OF COL,  EJ: 45600; 
 
 %% Glacier to extract
-
 iGlacierNumber = GUI_Input.glacier_number; 
-% data = ncread(netcdfFilename,varName,[1,1,r],[m n 1]);
-
 
 % Border (in matrix indices) necessary for sky view factor calculation
-kBorder     = 200;
-% Create matrix of 100x100 tile numbers identical in total size to DEM
-mTileNumber = reshape(1:kColLn*kRowLn/10000,[kRowLn/100 kColLn/100])';
-mTileNumber = kron(mTileNumber,ones(100,100));
+kBorder         = 200;
 
 % Find indices of glacier edges
 [row, col]  = find(mGlacNum==iGlacierNumber); 
-iM_i = floor(min(row)/100)*100 - kBorder;
-iM_f = ceil(max(row)/100)*100 + kBorder;
-iN_i = floor(min(col)/100)*100 - kBorder;
-iN_f = ceil(max(col)/100)*100 + kBorder;
-mTileNumber_Extract = mTileNumber(iM_i+1:iM_f,iN_i+1:iN_f);
-vTileNumbers        = unique(mTileNumber_Extract); 
-mGlacNum_Extract    = mGlacNum(iM_i+1:iM_f,iN_i+1:iN_f);                       % Added 11/15/19 -ESJ
-% mDebrisMask_Extract = mDebrisMask(iM_i+kBorder+1:iM_f-kBorder,iN_i+kBorder+1:iN_f-kBorder); % Added 11/15/19 -ESJ
-mDebrisMask_Extract = mDebrisMask(floor(min(row)/100)*100+1:ceil(max(row)/100)*100,floor(min(col)/100)*100+1:ceil(max(col)/100)*100); % equivalently.  Buffer unnecessary for deb
+iM_i = min(row) - kBorder;
+iM_f = max(row) + kBorder;
+iN_i = min(col) - kBorder;
+iN_f = max(col) + kBorder;
 
-% Remove large, unnecessary variables
-clearvars mTileNumbers mDebrisMask                                          % Modified 11/15/19 -ESJ
+mGlacNum_Extract    = mGlacNum(iM_i+1:iM_f,iN_i+1:iN_f);                       % Added 11/15/19 -ESJ
+mDebrisMask_Extract = mDebrisMask(min(row):max(row),min(col):max(col)); 
 
 % Extract DEMs and Masks for given glacier
-mDEM    = zeros(size(mTileNumber_Extract));
-mMask   = zeros(size(mTileNumber_Extract));
-
-for t = 1:length(vTileNumbers)
-    
-    iTileNumber = vTileNumbers(t);
-    
-    try % Try to load tile block
-%         load(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/mExtract_MxN_Ind_Gang_Brahm_HAR/Extract_MxN_',num2str(iTileNumber),'.mat'],'mM','mN')
-        load(['/uufs/chpc.utah.edu/common/home/u0929154/Desktop/Glacier_Model/Indus_Glacier_Sensitivity/m100x100_DEMs_and_Masks_Ind_Gang_Brahm/Glacier_DEM_90m_',num2str(iTileNumber),'.mat'],'mGlacAlt','mGlacMask') %???
-
-    catch % If tile block is unused, replace with NaNs
-        mGlacAlt = zeros(100,100);
-        mGlacMask = zeros(100,100);
-    end
-    
-    mDEM(mTileNumber_Extract==iTileNumber) = mGlacAlt;
-    mMask(mTileNumber_Extract==iTileNumber) = mGlacMask;
-    
-end
+mDEM = ncread('ASTER_30m_DEM.nc','mGlacAlt',[iM_i+1, iN_i+1],[iM_f-iM_i, iN_f-iN_i]); %why +1?
+mMask   = ncread('ASTER_30m_Glacier_Mask.nc','mGlacMask',[iM_i+1, iN_i+1],[iM_f-iM_i, iN_f-iN_i]); %why +1?
 
 % Remove other glaciers from the glacier mask
 mMask(mGlacNum_Extract ~= iGlacierNumber) = 0;
 
-mGlacAlt    = mDEM;
+mGlacAlt    = double(mDEM);
 mGlacMask   = mMask;
 mDebMask    = mDebrisMask_Extract;
+
 % Make lat/lon matrices
-vLat    = (linspace(25.0000,38.0000,kColLn))';
+vLat    = (linspace(28.999861, 37.117361,kColLn))'; %28.999861 37.117361
 mLat    = flipud(repmat(vLat,1,kRowLn));
-mLat    = mLat(iM_i+1:iM_f,iN_i+1:iN_f);
-vLong   = linspace(67.0000,105.0000,kRowLn);%hard coding!!!
+mLat    = mLat(iM_i+1:iM_f,iN_i+1:iN_f); %why +1?
+vLong   = linspace(67.618750, 82.500694,kRowLn); %67.6187499 82.50069444
 mLong   = repmat(vLong,kColLn,1);
-mLong   = mLong(iM_i+1:iM_f,iN_i+1:iN_f);
+mLong   = mLong(iM_i+1:iM_f,iN_i+1:iN_f); %why +1?
 
 kLat    = nanmean(mLat(mMask==1)); % Find average latitude of glacier
 kLong   = nanmean(mLong(mMask==1)); % Find average longitude of glacier
@@ -842,7 +814,7 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % end
 
 % save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AGm3_Nov5.mat'],saveopt)
-save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AGm3_Nov15b.mat'])
+save([GUI_Input.output_filename num2str(iGlacierNumber),'_AGm3_febB.mat'])
 
 
 

@@ -49,7 +49,8 @@ if strcmp(sGCM,'HAR')
             else
                 Leap = 0;
             end
-
+%problem line below!!!
+% keyboard
             vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[n_Idx-1,180-m_Idx,1], [3,3,8760+24*Leap], [1,1,1])));
             m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
 
@@ -166,13 +167,13 @@ end
 
 vLapseRates = zeros(365,1);
 
+warning('off','all')
+
 for t = 1:365
-            
-    warning('off','all')
 
     % Extract temp and elevation data for gridcell + neighbors
     vAltNeighbors_temp = mElevations_3x3(:);
-    mTempNeighbors_temp = squeeze(m3DA_Annual_Temp(:,:,t));
+    mTempNeighbors_temp = rot90(squeeze(m3DA_Annual_Temp(:,:,t)));
     % Calculate lapse rate (deg C km^-1)
     % scatter(vAltNeighbors_temp,mTempNeighbors_temp(:),'b')
     kLapseRate = polyfit(vAltNeighbors_temp,mTempNeighbors_temp(:),1);
