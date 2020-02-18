@@ -46,11 +46,16 @@ for t = 1:nansum(mGlacMask(:))
     vMaxTangents = zeros(kNumAnglesPerPoint,1);
     
     for g = 1:kNumAnglesPerPoint
+        try
         
         [vX, vY] = bresenham(iX, iY, vCircle_idx_X(g), vCircle_idx_Y(g));
         
-        vTangents_idx = sub2ind(size(mGlacMask),vX,vY);
+        vTangents_idx = sub2ind(size(mGlacMask),vY,vX);
         vMaxTangents(g) = max(mTangents(vTangents_idx));
+        catch
+        print(t)
+        print(g)
+        end
 
     end
     

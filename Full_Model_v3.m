@@ -37,8 +37,7 @@ iN_f = ceil(max(col)/100)*100 + kBorder;
 mTileNumber_Extract = mTileNumber(iM_i+1:iM_f,iN_i+1:iN_f);
 vTileNumbers        = unique(mTileNumber_Extract); 
 mGlacNum_Extract    = mGlacNum(iM_i+1:iM_f,iN_i+1:iN_f);                       % Added 11/15/19 -ESJ
-% mDebrisMask_Extract = mDebrisMask(iM_i+kBorder+1:iM_f-kBorder,iN_i+kBorder+1:iN_f-kBorder); % Added 11/15/19 -ESJ
-mDebrisMask_Extract = mDebrisMask(floor(min(row)/100)*100+1:ceil(max(row)/100)*100,floor(min(col)/100)*100+1:ceil(max(col)/100)*100); % equivalently.  Buffer unnecessary for deb
+mDebrisMask_Extract = mDebrisMask(iM_i+kBorder+1:iM_f-kBorder,iN_i+kBorder+1:iN_f-kBorder); % Added 11/15/19 -ESJ
 
 % Remove large, unnecessary variables
 clearvars mTileNumbers mDebrisMask                                          % Modified 11/15/19 -ESJ
