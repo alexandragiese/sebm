@@ -18,11 +18,10 @@ kColLn = size(mGlacNum,1); %ACTUALLY NUMBER OF ROWS, EJ: 15600;
 kRowLn = size(mGlacNum,2); %ACTYALLY NUMBER OF COL,  EJ: 45600; 
 
 %% Glacier to extract
-% keyboard
 iGlacierNumber  = GUI_Input.glacier_number; 
 
 % Border (in matrix indices) necessary for sky view factor calculation
-kBorder         = 200;
+kBorder         = 180;
 
 % Find indices of glacier edges
 [row, col]  = find(mGlacNum==iGlacierNumber); 
@@ -30,7 +29,7 @@ iM_i        = min(row) - kBorder;
 iM_f        = max(row) + kBorder;
 iN_i        = min(col) - kBorder;
 iN_f        = max(col) + kBorder;
-
+% keyboard
 mGlacNum_Extract    = mGlacNum(iM_i:iM_f,iN_i:iN_f); %+1 removed
 mDebrisMask_Extract = mDebrisMask(min(row):max(row),min(col):max(col)); 
 
@@ -122,7 +121,7 @@ elseif strcmp(sGCM,'WRF')
 end
 
 kAWS_Alt = Data.AWS_Alt;
-
+keyboard
 %% Start and End Dates
 
 % Start Date
@@ -218,7 +217,7 @@ else
     kStart  = kStartDay;
     kEnd    = kEndDay;
 end
-                                           
+ keyboard                                          
 %% Constants
 
 % Latent heat of sublimation (J kg^-1)
@@ -367,7 +366,9 @@ RAve.Rain_Freeze_Amount = zeros(length(vTime),1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 for t = kStart:kEnd 
-    t
+%     if rem(t,11393)==0
+%         disp(t)
+%     end
     %% Extract timestep data
 
     mSW_in = vSW_in(t) .* mGlacMask;
@@ -688,13 +689,13 @@ for t = kStart:kEnd
     RAve.T_a(t) = nanmean(mT_a(mGlacMask==1));
     RAve.Precip(t) = nanmean(mPrecip(mGlacMask==1));
     RAve.P_a(t) = nanmean(mP_a(mGlacMask==1));
-    RAve.Accumulation(t) = nansum(nansum(mPrecip(mT_a <= 0 & mGlacMask == 1))) / nansum(mGlacMask(:));
+    RAve.Accumulation(t) = nansum(nansum(mPrecip(mT_a <= kRainThreshold & mGlacMask == 1))) / nansum(mGlacMask(:));
     RAve.Rain_Freeze_Energy(t) = nanmean(mRain_Freeze_Energy(mGlacMask==1));
     RAve.Rain_Freeze_Amount(t) = nanmean(mRain_Freeze_Amt(mGlacMask==1));
     
     % Precipitation fraction that falls as snow
     if nansum(nansum(mPrecip)) ~= 0
-        RAve.PrecipFrac(t) = nansum(nansum(mGlacMask(mT_a <= 0 & mPrecip > 0))) / nansum(nansum(mGlacMask(mPrecip > 0)));
+        RAve.PrecipFrac(t) = nansum(nansum(mGlacMask(mT_a <= kRainThreshold & mPrecip > 0))) / nansum(nansum(mGlacMask(mPrecip > 0)));
     elseif nansum(nansum(mPrecip)) == 0
         RAve.PrecipFrac(t) = nan;
     end
@@ -768,7 +769,7 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
     mTotalMelt mTotalAccum m3Alpha m3S_net m3L_out m3L_in m3Q_S m3Q_L m3Q_P ...
     m3T_s_Act_s m3T_s_Act_2 m3T_a m3Precip m3Q_net m3Q_m m3T_a m3Precipitation ...
     m3Rain_Freeze_Amount m3TotalMelt m3TotalAccum mGlacMask mGlacAlt ...
-    mTotalMelt_1975 mTotalAccum_1975 mTotalSub mTotalEvap Data mDebMask
+    mTotalMelt_1975 mTotalAccum_1975 mTotalSub mTotalEvap Data mDebMask kAWS_Alt
 
 % These lines convert the 3D variables from double precision to single                                                                                   785
 % precision to save space and time.  
@@ -816,7 +817,7 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % end
 
 % IF BIG: save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AG.mat'],saveopt)
-save([GUI_Input.output_filename num2str(iGlacierNumber),'_AG.mat'])
-
+% save([GUI_Input.output_filename num2str(iGlacierNumber),'_vneg10redo.mat'])
+ej_var=nanmean(mGlacAlt(mGlacMask==1))-kAWS_Alt
 
 end

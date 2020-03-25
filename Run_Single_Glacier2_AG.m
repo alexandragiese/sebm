@@ -31,16 +31,16 @@ GUI_Input.iZ_0q_ice         = 0.004;
 % vModel_MB_2000_to_2016  = NaN(length(vJosh_Object_ID),1);
 % vModel_MB               = NaN(length(vJosh_Object_ID),1);
 
-load initial_run.mat % <-- should be replaced by integrating and calling GeoMB data!
-UIB_RGI = importdata('rgi_IDs.txt'); %RGI6 IDs within UIB shapefile
+load deb10size10th5HAR.mat
 
-for r = 1010:length(gl_to_run)        
-    GUI_Input.glacier_number    = gl_to_run(r); % glaciers < 10% deb in size range & in HAR       
+for r = 275:279  
+    GUI_Input.glacier_number    = gl(r);      
     [R1, R2, RAve] = Full_Model_AG( GUI_Input );
 % save(['Josh_MB_Glacier_Num_',num2str(GUI_Input.glacier_number),'_',GUI_Input.sGCM,'_temp_saveAG.mat'])
 % save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'JoshMB_AGm3.mat'])
 toc
-r
+% r
+disp(gl(r));
 end
 
 %     if rem(r,30), save

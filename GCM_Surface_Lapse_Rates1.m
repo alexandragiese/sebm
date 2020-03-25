@@ -50,8 +50,11 @@ if strcmp(sGCM,'HAR')
                 Leap = 0;
             end
 %problem line below!!!
-% keyboard
-i
+
+if (180-m_Idx) >= 178
+    m_Idx = 2; % If 178 doesn't work, try 177 in the line above, and 3 in this line
+end
+
             vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[n_Idx-1,180-m_Idx,1], [3,3,8760+24*Leap], [1,1,1])));
             m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
 
