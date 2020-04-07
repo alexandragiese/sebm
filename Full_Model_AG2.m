@@ -119,8 +119,8 @@ elseif strcmp(sGCM,'HAR')
 elseif strcmp(sGCM,'WRF')
     
 end
-
 kAWS_Alt = Data.AWS_Alt;
+
 %% Start and End Dates
 
 % Start Date
@@ -216,7 +216,7 @@ else
     kStart  = kStartDay;
     kEnd    = kEndDay;
 end
-                                         
+                                        
 %% Constants
 
 % Latent heat of sublimation (J kg^-1)
@@ -549,10 +549,13 @@ for t = kStart:kEnd
 
     %%
     %Heat fluxes from changing surface temperature (AG) (W m^{-2})
-    mQ_T_s = (( mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./kLayerThick_s )./kLayerThick_s ) .* mGlacMask .*... 
+    mQ_T_s = (( mK_s .* (mT_s_Act_2 - mT_s_Act_s) ./ ...
+        kLayerThick_s )./kLayerThick_s + (mQ_net - mQ_G) ./ (kC_i .* ...
+        mRho_s .* kLayerThick_s)) .* mGlacMask .*... 
         (kC_i .* mRho_s .* kLayerThick_s);
-    mQ_T_2 = (( mK_2 .* (mT_s_Act_3 - mT_s_Act_2) ./ kLayerThick_2) - ...
-        (mK_s .* (mT_s_Act_2 - mT_s_Act_s)) ./ kLayerThick_s  ) ./ kLayerThick_2 .* mGlacMask .*... 
+    mQ_T_2 = (( mK_2 .* (mT_s_Act_3 - mT_s_Act_2) ./ ...
+        kLayerThick_2) - (mK_s .* (mT_s_Act_2 - mT_s_Act_s)) ...
+        ./ kLayerThick_s  ) ./ kLayerThick_2 .* mGlacMask .*... 
         (kC_i .* mRho_s .* kLayerThick_2);
     
     % Theoretical surface temperature (K)
@@ -827,7 +830,7 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % end
 
 % IF BIG: save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AG.mat'],saveopt)
-save([GUI_Input.output_filename num2str(iGlacierNumber),'_fluxtest.mat'])
+% save([GUI_Input.output_filename num2str(iGlacierNumber),'_fluxtest.mat'])
 % ej_var=nanmean(mGlacAlt(mGlacMask==1))-kAWS_Alt
 
 end

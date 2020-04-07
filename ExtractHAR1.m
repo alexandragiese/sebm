@@ -16,7 +16,7 @@ vLat = mLat(:);
 vLong = mLong(:);
 
 [~, iLatLongIdx] = min((vLat - Lat).^2 + (vLong - Long).^2);
-[m_Idx, n_Idx] = ind2sub([270, 180], iLatLongIdx);
+[m_Idx, n_Idx] = ind2sub([270, 180], iLatLongIdx); %[270, 180] is size of mLong & mLat
 
 %% Grid Elevation
 
@@ -167,7 +167,7 @@ if strcmp(sRes,'hourly')
     % Convert Kelvin to Celsius
     Temp = Temp - 273.15;
 
-    %% Precipitation (mm/day)
+    %% Precipitation (mm/h - AG)
 
     Precip = [];
 
