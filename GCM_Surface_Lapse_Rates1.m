@@ -59,7 +59,7 @@ end
             m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
 
         end
-        
+     
         % Convert Kelvin to Celsius
         m3T_a_3x3 = m3T_a_3x3 - 273.15;
         
@@ -176,97 +176,12 @@ warning('off','all')
 for t = 1:365
 
     % Extract temp and elevation data for gridcell + neighbors
-    vAltNeighbors_temp = mElevations_3x3(:);
-    mTempNeighbors_temp = rot90(squeeze(m3DA_Annual_Temp(:,:,t)));
+    vAltNeighbors_temp = mElevations_3x3(:); %9x1
+    mTempNeighbors_temp = rot90(squeeze(m3DA_Annual_Temp(:,:,t))); %3x3
     % Calculate lapse rate (deg C km^-1)
     % scatter(vAltNeighbors_temp,mTempNeighbors_temp(:),'b')
-    kLapseRate = polyfit(vAltNeighbors_temp,mTempNeighbors_temp(:),1);
+    kLapseRate = polyfit(vAltNeighbors_temp,mTempNeighbors_temp(:),1); 
     kLapseRate = kLapseRate(1) * 1000;
-    vLapseRates(t) = kLapseRate;
-    
+    vLapseRates(t) = kLapseRate;   
 end
-
 warning('on','all')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

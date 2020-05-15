@@ -6,30 +6,50 @@ close all
 sDataDirectory = '/uufs/chpc.utah.edu/common/home/steenburgh-group6/Eric/HAR_Data';
 addpath(genpath(sDataDirectory))
 
-load UIB_triangle.mat
-    polyin = polyshape(lon_full,lat_full); 
+% Code NEEDS: polyshape "poly_test" of area of inclusion (all of UIB or
+% subbasin) and its LONGITUDE AND LATITUDE outline
+load UIB_triangle.mat %FULL UIB
+    poly_uib = polyshape(lon_full,lat_full); 
     
+bbox = [67.5 30.2; 82.5 37.2];
+B = shaperead('../HydroShedFAO_hydrobasins_asia/hydrobasins_asia','BoundingBox',bbox,...
+              'UseGeoCoords',true);
+for k = [19:25, 27, 30, 32, 36]
+    subB = polyshape(B(k).Lon,B(k).Lat); %structure with Vertices field 
+    if k==20 || k>=23 
+        subB_i = subB; %intermediate
+        subB = intersect( poly_uib , subB_i );
+    end
+    k  
+poly_test = subB; %or poly_uib
+
 cd(sDataDirectory)
 mLat = double(ncread('har_d10km_h_2d_t2_2001.nc', 'lat'));
 mLong = double(ncread('har_d10km_h_2d_t2_2001.nc','lon'));
 
+% Coordinates
 vLat = mLat(:);
 vLong = mLong(:);
 
 % [~, iLatLongIdx] = min((vLat - Lat).^2 + (vLong - Long).^2);
 % [m_Idx, n_Idx] = ind2sub([270, 180], iLatLongIdx);
+clear lon_full lat_full %comment out for full UIB
+lon_full = subB.Vertices(:,1); %comment out for full UIB
+lat_full = subB.Vertices(:,2); %comment out for full UIB
 
-% Coordinates
-in_uib = inpolygon(vLong,vLat,lon_full,lat_full);
+if k==23 %Remove weird tail in Astore
+    f = 2042;
+    lon_full = lon_full(1:f-1); 
+    lat_full = lat_full(1:f-1);
+end
 
-plot(polyin); hold on
-    plot(vLong(in_uib==1),vLat(in_uib==1),'r.')
-    plot(vLong(in_uib==0),vLat(in_uib==0),'b.')
+in_basin = inpolygon(vLong,vLat,lon_full,lat_full);
+
+% plot(poly_test); hold on
+%     plot(vLong(in_basin==1),vLat(in_basin==1),'r.')
+%     plot(vLong(in_basin==0),vLat(in_basin==0),'b.')
     
-Idx = find(in_uib==1);
-
-% Elev_HAR = nan(length(vLat),1);
-% Precip_HAR = nan(length(vLat),131496); 
+Idx = find(in_basin==1);
 
 % Grid Elevation
 ncid = netcdf.open('har_d10km_static_hgt.nc');
@@ -69,7 +89,6 @@ for j = 1:length(Idx)
     % Convert to m / hr
     Precip = Precip / 1000; %1/1/00-1/1/15 for each location of 270 x 180 (48600)
     Precip_HAR(j,:) = Precip'; %131496x1
-    j
 end
 
 %% Create time vectors
@@ -85,5 +104,8 @@ if varinfo.bytes >= 2^31
   saveopt='-v7.3';
 end
 
-save('HAR_ElevPrecip_exact.mat',saveopt)
-% load ../../steenburgh-group6/Ali2/HAR_ElevPrecip.mat
+%ADD SOMETHING TO INDICATE BASIN!!!
+save(['HAR_ElevPrecip_B',num2str(k),'truncated.mat'],saveopt)
+clear Precip_HAR
+end
+% load ../../steenburgh-group6/Ali2/HAR_ElevPrecip_exact.mat
