@@ -14,6 +14,7 @@ GUI_Input.snow_depth        = 0;
 GUI_Input.snow_density      = 250;
 GUI_Input.temp_forcing      = 0;
 GUI_Input.lapse_rate        = 6.500;
+GUI_Input.precip_maxa_alt   = 5500; % m a.s.l. AG
 GUI_Input.iZ_0m_snow        = 0.001;
 GUI_Input.iZ_0m_ice         = 0.016;
 GUI_Input.iZ_0T_snow        = 0.001;
@@ -22,45 +23,50 @@ GUI_Input.iZ_0q_snow        = 0.001;
 GUI_Input.iZ_0q_ice         = 0.004;
 GUI_Input.threeDsave        = 0;
 
+% IDs to run
+% load deb10size10th5HAR.mat 
+load Indus1_rndm30.mat
+
 % Import Geodedic Mass Balance Data
 G     = csvread('DS_wRGI.csv');
 glID  = G(:,1);
 geoMB = G(:,11); % m w.e. / a
 geoMB_sigma = G(:,12);
-basin = G(:,49);
-
-
-% Glacier IDs to run
-% % load deb10size10th5HAR.mat 
-% % load Indus1_rndm30.mat
-load 30gl_eachbasin.mat
-    foo = ~isnan(glac_nums(:));
-    y = glac_nums(foo);
-load linear_fits.mat %contains 11 x 3 PLR
 
 % S: solution vector: 
-S = nan(length(y),2);
-i = -1;
 
-for g = 1:length(y) %r = 5006 
-    GUI_Input.glacier_number = y(g); %= glID(r); 
+%these while statements may not work when HAR elev is above glacier?
+for g = 1:30 %r = 5006 %
+%     GUI_Input.cf = 1; %correction factor for PLR
+    GUI_Input.glacier_number = y(g); %= glID(r); %   
     r = find (glID==y(g));
-
-    GUI_Input.glacier_basin = basin(r);
-    GUI_Input.p1 = PLR(basin(r),1);
-    GUI_Input.p2 = PLR(basin(r),2);
-    GUI_Input.r2 = PLR(basin(r),3);
-    
     [R1, R2, RAve] = Full_Model_AG2( GUI_Input );
-    modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
-    geodeticMB = geoMB(r);
-    sigma      = geoMB_sigma(r);
-        S(g*2+i:g*2+i+2,1) = g;
-        S(g*2+i,2)   = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
-        S(g*2+i+1,2) = geoMB(r);
-        S(g*2+i+2,2) = geoMB_sigma(r);
-    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'noPLR.mat'])
-    i = i+1;
+        modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13 
+        geodeticMB = geoMB(r)
+        sigma      = geoMB_sigma(r)
+%     while modelMB < geodeticMB - sigma %model melts too much --> precipitate more (increase lapse rate)
+%         f = abs(abs(geodeticMB-modelMB)/geodeticMB); %factor, 1 would be exact match
+%             if f >= 10
+%                 disp(['Resetting f=',num2str(f),' to 9.5.'])
+%                 f = 9.5;
+%             end
+%         GUI_Input.cf   = GUI_Input.cf*(1+f/10); %adjust by how much off; 0.1 may need to be adjusted
+%         [R1, R2, RAve] = Full_Model_AG2( GUI_Input );
+%         modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13
+%     end
+%     while modelMB > geodeticMB + sigma %model melts too little --> precipitate less (decrease lapse rate)
+%         f = abs(abs(geodeticMB-modelMB)/geodeticMB);
+%             if f >= 10
+%                 disp(['Resetting f=',num2str(f),' to 9.5.'])
+%                 f = 9.5;
+%             end
+%         GUI_Input.cf   = GUI_Input.cf*(1-f/10); %adjust by how much off
+%         [R1, R2, RAve] = Full_Model_AG2( GUI_Input );
+%         modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13
+%     end
+%     if modelMB < geodeticMB+sigma && modelMB > geodeticMB-sigma %this if statement *shouldn't* be necessary
+        save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_Indus1_noPLR_newTLR.mat'])
+%     end
     g
 end
 

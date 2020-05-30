@@ -1,6 +1,6 @@
-function [R1, R2, RAve] = Full_Model_AG2( GUI_Input )
-threeDsave = GUI_Input.threeDsave;
-close all
+function [R1, R2, RAve ] = Full_Model_AG2( GUI_Input )
+
+% close all
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
 % addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm/SkyViewFolder');
 
@@ -52,7 +52,6 @@ mLat    = mLat(iM_i:iM_f,iN_i:iN_f); %+1 removed
 vLong   = linspace(67.618750, 82.500694,kRowLn); %67.6187499 82.50069444
 mLong   = repmat(vLong,kColLn,1);
 mLong   = mLong(iM_i:iM_f,iN_i:iN_f); %+1 removed
-% keyboard
 kLat    = nanmean(mLat(mMask==1)); % Find average latitude of glacier
 kLong   = nanmean(mLong(mMask==1)); % Find average longitude of glacier
 
@@ -138,20 +137,6 @@ EndYear     = str2double(GUI_Input.end_date(7:10));
 
 kEndDay     = find(stTime.day==EndDay & stTime.month==EndMonth & stTime.year==EndYear,1,'first');
 
-% % Date to start recording MB (1975-2000)
-% MBMonth1975 = str2double(GUI_Input.mb_date_1975(1:2));
-% MBDay1975   = str2double(GUI_Input.mb_date_1975(4:5));
-% MBYear1975  = str2double(GUI_Input.mb_date_1975(7:10));
-% 
-% % kMBDay1975 = find(stTime.day==MBDay1975 & stTime.month==MBMonth1975 & stTime.year==MBYear1975,1,'first');
-% 
-% % Date to start recording MB (2000-2016)
-% MBMonth2000 = str2double(GUI_Input.mb_date_2000(1:2));
-% MBDay2000   = str2double(GUI_Input.mb_date_2000(4:5));
-% MBYear2000  = str2double(GUI_Input.mb_date_2000(7:10));
-% 
-% % kMBDay2000  = find(stTime.day==MBDay2000 & stTime.month==MBMonth2000 & stTime.year==MBYear2000,1,'first');
-
 %% Time Step
 
 % Data resolution (minutes)
@@ -185,13 +170,13 @@ kZ_0q_ice   = GUI_Input.iZ_0q_ice;
 kPrecipThresh = GUI_Input.precip_threshold;
 
 %% Lapse rate (C km^-1)
-vLapseRates                      = GCM_Surface_Lapse_Rates1( sGCM, sTempRes, kLat, kLong );
-[vPrcpLapseRates, mPolyfit_prcp] = GCM_Precip_Lapse_Rates1( sGCM, sTempRes, kLat, kLong, stTime );
+vLapseRates             = GCM_Surface_Lapse_Rates1( sGCM, sTempRes, kLat, kLong );
+% [vPrcpLapseRates, mPolyfit_prcp] = GCM_Precip_Lapse_Rates1( sGCM, sTempRes, kLat, kLong, stTime );
 
 [ vLapseRates_smooth ]  = SmoothLapseRates1( vLapseRates  );
-vPrcpLapseRates_extended = [vPrcpLapseRates(:); vPrcpLapseRates(1)]; %Include Dec - Jan transition
-vPrcpRates_smooth_extended = smooth(vPrcpLapseRates_extended); %to be smoothed
-vPrcpLapseRates_smooth = GUI_Input.cf*vPrcpRates_smooth_extended(1:12); %
+% vPrcpLapseRates_extended = [vPrcpLapseRates(:); vPrcpLapseRates(1)]; %Include Dec - Jan transition
+% vPrcpRates_smooth_extended = smooth(vPrcpLapseRates_extended); %to be smoothed
+% vPrcpLapseRates_smooth = GUI_Input.cf*vPrcpRates_smooth_extended(1:12); %
 % figure; plot(vPrcpLapseRates,'.'); hold on; plot(vPrcpLapseRates_smooth)
 %% Scale Wind Speed from 10m to 2m (for HAR)
 
@@ -267,7 +252,6 @@ mTotalEvap  = zeros(size(mGlacMask));
 % Precipitation fraction (snow/total)
 RAve.PrecipFrac = NaN(length(vTime),1);
 
-% 
 % mNaNGlacMask = mGlacMask;
 % mNaNGlacMask(mNaNGlacMask == 0) = nan;
 
@@ -350,24 +334,24 @@ RAve.Accumulation       = zeros(length(vTime),1);
 RAve.Rain_Freeze_Energy = zeros(length(vTime),1);
 RAve.Rain_Freeze_Amount = zeros(length(vTime),1);
 
-if threeDsave == 1
+if GUI_Input.threeDsave == 1
 % FOR SAVING FULLY DISTRIBUTED VARIABLES - PREALLOCATE SPACE
 m3TotalMelt = zeros([size(mGlacMask),kEnd-kStart+1]); %Total Melt (mm/time)
 m3TotalAccum= zeros([size(mGlacMask),kEnd-kStart+1]); %Total Acc (mm/time)
-% m3Alpha     = zeros([size(mGlacMask),kEnd-kStart+1]); %Albedo (-)
-% m3S_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %New SW (W/m^2)
-% m3L_out     = zeros([size(mGlacMask),kEnd-kStart+1]); %Emited LW (W/m^2)
-% m3L_in      = zeros([size(mGlacMask),kEnd-kStart+1]); %Incoming LW (W/m^2)
-% m3Q_S       = zeros([size(mGlacMask),kEnd-kStart+1]); %S (sensible?) (W/m^2)
-% m3Q_L       = zeros([size(mGlacMask),kEnd-kStart+1]); %LE (latent?) (W/m^2)
-% m3Q_P       = zeros([size(mGlacMask),kEnd-kStart+1]); %Energy from precip? (W/m^2)
-% m3T_s_Act_s = zeros([size(mGlacMask),kEnd-kStart+1]); %Surface temperature (C)
-% m3T_s_Act_2 = zeros([size(mGlacMask),kEnd-kStart+1]); %Temperature of 2nd surface layer (C)
-% m3T_a       = zeros([size(mGlacMask),kEnd-kStart+1]); %Air temperature (C)
-% m3Precipitation       = zeros([size(mGlacMask),kEnd-kStart+1]); %Total precip, both phases (mm w.e./time)
-% m3Rain_Freeze_Amount  = zeros([size(mGlacMask),kEnd-kStart+1]); %Freezing rain (mm w.e./time?)
-% m3Q_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %Net surface energy (W/m^2)
-% m3Q_m       = zeros([size(mGlacMask),kEnd-kStart+1]);     %Melt energy (W/m^2)
+m3Alpha     = zeros([size(mGlacMask),kEnd-kStart+1]); %Albedo (-)
+m3S_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %New SW (W/m^2)
+m3L_out     = zeros([size(mGlacMask),kEnd-kStart+1]); %Emited LW (W/m^2)
+m3L_in      = zeros([size(mGlacMask),kEnd-kStart+1]); %Incoming LW (W/m^2)
+m3Q_S       = zeros([size(mGlacMask),kEnd-kStart+1]); %S (sensible?) (W/m^2)
+m3Q_L       = zeros([size(mGlacMask),kEnd-kStart+1]); %LE (latent?) (W/m^2)
+m3Q_P       = zeros([size(mGlacMask),kEnd-kStart+1]); %Energy from precip? (W/m^2)
+m3T_s_Act_s = zeros([size(mGlacMask),kEnd-kStart+1]); %Surface temperature (C)
+m3T_s_Act_2 = zeros([size(mGlacMask),kEnd-kStart+1]); %Temperature of 2nd surface layer (C)
+m3T_a       = zeros([size(mGlacMask),kEnd-kStart+1]); %Air temperature (C)
+m3Precipitation       = zeros([size(mGlacMask),kEnd-kStart+1]); %Total precip, both phases (mm w.e./time)
+m3Rain_Freeze_Amount  = zeros([size(mGlacMask),kEnd-kStart+1]); %Freezing rain (mm w.e./time?)
+m3Q_net     = zeros([size(mGlacMask),kEnd-kStart+1]); %Net surface energy (W/m^2)
+m3Q_m       = zeros([size(mGlacMask),kEnd-kStart+1]);     %Melt energy (W/m^2)
 end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Model Start
@@ -386,12 +370,13 @@ for t = kStart:kEnd
 
     %% Apply precipitation gradient (mm/m) up to ?    
     % no precipitation gradient used:
-%     mPrecip = (vP_d(t) .* mGlacMask); 
+     mPrecip = (vP_d(t) .* mGlacMask); 
 
 % Monthly gradient (Precip increases with height and as a function of the amount of precip, unlike temp)
-%   mPrecip = P @ HAR elev + elev dif * frac of average hourly P for month * P lapse rate for month (mm/m) .* mGlacMask;
-    mPrecip = (vP_d(t) + (mGlacAlt - kAWS_Alt) * (vP_d(t)/polyval(mPolyfit_prcp(stTime.month(t),:),kAWS_Alt)) * vPrcpLapseRates_smooth(stTime.month(t)) / 1000) .* mGlacMask;  
-%     save take_LR_local2.mat vP_d mGlacAlt kAWS_Alt vPrcpLapseRates_smooth stTime mPolyfit_prcp mGlacMask
+% %   mPrecip = P @ HAR elev + elev dif * frac of average hourly P for month * P lapse rate for month (mm/m) .* mGlacMask;
+% %   mPrecip = (vP_d(t) + (mGlacAlt - kAWS_Alt) * (vP_d(t)/polyval(mPolyfit_prcp(stTime.month(t),:),kAWS_Alt)) * vPrcpLapseRates_smooth(stTime.month(t)) / 1000) .* mGlacMask;  
+% hourly_avg = GUI_Input.p1*mGlacAlt + GUI_Input.p2; %@ alt., m/hr
+% mPrecip = (vP_d(t) + (mGlacAlt - kAWS_Alt) .* (vP_d(t)./hourly_avg) * GUI_Input.p1) .* mGlacMask;  %PLR in m P / m elev b/c vP_d in m/h
     %% Calculate air pressure gradient with the hydrostatic equation (hPa/m)
     
     % Calculate day of the year 
@@ -429,7 +414,7 @@ for t = kStart:kEnd
     % Add accumulation (m)
     mTotalAccum(mT_a <= kRainThreshold) = (mTotalAccum(mT_a <= kRainThreshold) + mPrecip(mT_a <= kRainThreshold));
     mTotalAccum = mTotalAccum .* mGlacMask;
-    
+%     if t ==16081, keyboard, end
     % Reset snow clock anywhere it snowed more than specified precitation threshold                      
     mSnowClock(mT_a <= kRainThreshold & mPrecip > kPrecipThresh) = 0;
     
@@ -598,6 +583,7 @@ for t = kStart:kEnd
     mQ_net = mQ_net + mRain_Freeze_Energy;
     % Calculate amount of frozen rain (m w.e.)
     mRain_Freeze_Amt = mRain_Freeze_Energy * kTimeStep_sec / (kL_f * 1000);
+%     if t ==16081, keyboard, end
     % Add frozen rain as accumulation (m w.e.)
     mTotalAccum = (mTotalAccum + mRain_Freeze_Amt) .* mGlacMask;
     %% Melt energy (W m^-2)
@@ -700,7 +686,7 @@ for t = kStart:kEnd
     RAve.T_s_1(t) = nanmean(mT_s_Act_s(mGlacMask==1));
     RAve.T_s_2(t) = nanmean(mT_s_Act_2(mGlacMask==1));
     RAve.Lapse_Rate(t) = iLapseRate;
-    RAve.PLapse_Rate(t) = vPrcpLapseRates_smooth(stTime.month(t));
+%     RAve.PLapse_Rate(t) = vPrcpLapseRates_smooth(stTime.month(t));
     RAve.SnowDepth(t) = nanmean(mSnowDepth(mGlacMask==1));
     RAve.SnowMelt(t) = nanmean(mSnowMelt(mGlacMask==1));
     RAve.Sub(t) = nanmean(mSub(mGlacMask==1));
@@ -709,6 +695,7 @@ for t = kStart:kEnd
     RAve.TotalMelt(t) = nanmean(mTotalMelt(mGlacMask==1));
     RAve.Alpha(t) = nanmean(mAlpha(mGlacMask==1));
     RAve.T_a(t) = nanmean(mT_a(mGlacMask==1));
+%     if t ==16081, keyboard, end
     RAve.Precip(t) = nanmean(mPrecip(mGlacMask==1));
     RAve.P_a(t) = nanmean(mP_a(mGlacMask==1));
     RAve.Accumulation(t) = nansum(nansum(mPrecip(mT_a <= kRainThreshold & mGlacMask == 1))) / nansum(mGlacMask(:)); %AG changed
@@ -722,24 +709,25 @@ for t = kStart:kEnd
         RAve.PrecipFrac(t) = nan;
     end
 
-if threeDsave == 1
+if GUI_Input.threeDsave == 1
 %FOR SAVING FULLY DISTRIBUTED VARIABLES
     m3TotalMelt(:,:,t) = mTotalMelt;
+%     if t ==16081, keyboard, end
     m3TotalAccum(:,:,t) = mTotalAccum;
-%     m3Alpha(:,:,t) = mAlpha;
-%     m3S_net(:,:,t) = mS_net;
-%     m3L_out(:,:,t) = mL_out;
-%     m3L_in(:,:,t) = mL_in;
-%     m3Q_S(:,:,t) = mQ_S;
-%     m3Q_L(:,:,t) = mQ_L;
-%     m3Q_P(:,:,t) = mQ_P;
-%     m3T_s_Act_s(:,:,t) = mT_s_Act_s;
-%     m3T_s_Act_2(:,:,t) = mT_s_Act_2;
-%     m3T_a(:,:,t) = mT_a;
-%     m3Precipitation(:,:,t) = mPrecip;
-%     m3Rain_Freeze_Amount(:,:,t) = mRain_Freeze_Amt;
-%     m3Q_net(:,:,t) = mQ_net;
-%     m3Q_m(:,:,t) = mQ_m;
+    m3Alpha(:,:,t) = mAlpha;
+    m3S_net(:,:,t) = mS_net;
+    m3L_out(:,:,t) = mL_out;
+    m3L_in(:,:,t) = mL_in;
+    m3Q_S(:,:,t) = mQ_S;
+    m3Q_L(:,:,t) = mQ_L;
+    m3Q_P(:,:,t) = mQ_P;
+    m3T_s_Act_s(:,:,t) = mT_s_Act_s;
+    m3T_s_Act_2(:,:,t) = mT_s_Act_2;
+    m3T_a(:,:,t) = mT_a;
+    m3Precipitation(:,:,t) = mPrecip;
+    m3Rain_Freeze_Amount(:,:,t) = mRain_Freeze_Amt;
+    m3Q_net(:,:,t) = mQ_net;
+    m3Q_m(:,:,t) = mQ_m;
 end
 
 
@@ -787,8 +775,8 @@ R2.TotalAveEvap = nanmean(mTotalEvap(mGlacMask == 1));
 
 % % Display total average melt (m)
 % disp(['Total Average Melt = ',num2str(R.TotalAveMelt),' meters'])
-% % Display total accumulation (m)
-% disp(['Total average accumulation ',num2str(R.TotalAveAccum),' meters'])
+% Display total accumulation (m)
+% disp(['Total average accumulation ',num2str(R2.TotalAveAccum),' meters'])
 
 clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
     mTotalMelt mTotalAccum m3Alpha m3S_net m3L_out m3L_in m3Q_S m3Q_L m3Q_P ...
@@ -844,5 +832,8 @@ clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber sMicroPhysics ...
 % IF BIG: save([GUI_Input.output_filename, num2str(iGlacierNumber),'_AG.mat'],saveopt)
 % save([GUI_Input.output_filename num2str(iGlacierNumber),'_fluxtest.mat'])
 % ej_var=nanmean(mGlacAlt(mGlacMask==1))-kAWS_Alt
+% if GUI_Input.threeDsave == 1
+%     save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_3D.mat'],'-v7.3')
+% end
 
 end
