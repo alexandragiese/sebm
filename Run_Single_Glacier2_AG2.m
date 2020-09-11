@@ -1,10 +1,15 @@
+clear
+
 tic
 
 GUI_Input.sGCM          = 'HAR';
 GUI_Input.HAR_temp_res  = 'hourly'; % 'daily' or 'hourly'
 GUI_Input.start_date    = '01/01/2001';
 GUI_Input.end_date      = '12/31/2013';
+% GUI_Input.start_date    = '01/01/2001';
+% GUI_Input.end_date      = '12/31/2001';
 GUI_Input.kRadius       = 98;
+% GUI_Input.output_filename   = ['/uufs/chpc.utah.edu/common/home/steenburgh-group6/Ali2/SEBM_output/Glacier_Number_'];
 GUI_Input.output_filename   = ['/uufs/chpc.utah.edu/common/home/u6027899/SEBM_output/Glacier_Number_'];
 GUI_Input.ensemble_number   = 8;
 GUI_Input.mb_date_1975      = '01/01/1975';
@@ -29,39 +34,44 @@ geoMB = G(:,11); % m w.e. / a
 geoMB_sigma = G(:,12);
 basin = G(:,49);
 
-
 % Glacier IDs to run
 % % load deb10size10th5HAR.mat 
 % % load Indus1_rndm30.mat
 load 30gl_eachbasin.mat
+% load clean_median.mat
     foo = ~isnan(glac_nums(:));
     y = glac_nums(foo);
-load linear_fits.mat %contains 11 x 3 PLR
-
+% load linear_fits.mat %contains 11 x 3 PLR
+load bisquare_fits.mat
+% load precip_corr.mat
+%     foo = ~isnan(C(:));
+%     GUI_Input.PC = C(foo);
+    
 % S: solution vector: 
 S = nan(length(y),2);
 i = -1;
 
-for g = 1:length(y) %r = 5006 
+for g = 121:150 %1:length(y) %r = 5006 
     GUI_Input.glacier_number = y(g); %= glID(r); 
     r = find (glID==y(g));
 
     GUI_Input.glacier_basin = basin(r);
-    GUI_Input.p1 = PLR(basin(r),1);
-    GUI_Input.p2 = PLR(basin(r),2);
-    GUI_Input.r2 = PLR(basin(r),3);
+%     GUI_Input.p1 = PLR(basin(r),1);
+%     GUI_Input.p2 = PLR(basin(r),2);
+%     GUI_Input.r2 = PLR(basin(r),3);
     
-    [R1, R2, RAve] = Full_Model_AG2( GUI_Input );
-    modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
-    geodeticMB = geoMB(r);
-    sigma      = geoMB_sigma(r);
+    [R1, R2, RAve] = Full_Model_AG3( GUI_Input,g );
+%     modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
+%     geodeticMB = geoMB(r);
+%     sigma      = geoMB_sigma(r);
         S(g*2+i:g*2+i+2,1) = g;
-        S(g*2+i,2)   = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
+        S(g*2+i,2)   = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13; 
         S(g*2+i+1,2) = geoMB(r);
         S(g*2+i+2,2) = geoMB_sigma(r);
-    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'noPLR.mat'])
+    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_hourly.mat'])
+    keyboard
     i = i+1;
-    g
+    disp(g)
 end
 
 
@@ -123,4 +133,7 @@ toc
 % 48) DC_CTSmean  
 % 49) Subbasin 1-11
 
-  
+% plot(RAve.MB_track(2:end)-RAve.MB_track(1:end-1),'.','MarkerSize',20)
+% ylim([-.27 -.265])
+% ylabel('Change in MB (m w.e.)')
+% xlabel('Year after initial (2001)')

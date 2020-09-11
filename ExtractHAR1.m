@@ -167,7 +167,7 @@ if strcmp(sRes,'hourly')
     % Convert Kelvin to Celsius
     Temp = Temp - 273.15;
 
-    %% Precipitation (mm/h - AG)
+    %% Precipitation (m/h)
 
     Precip = [];
 
@@ -470,7 +470,7 @@ elseif strcmp(sRes,'daily')
     % Convert Kelvin to Celsius
     Temp = Temp - 273.15;
 
-    %% Precipitation (mm/day)
+    %% Precipitation (m/day)
 
     Precip = [];
 
@@ -499,7 +499,8 @@ elseif strcmp(sRes,'daily')
     end
 
     % Convert to m / hr
-    Precip = Precip * 24 / 1000;
+    Precip = Precip * 24 / 1000; %24h is necessary b/c HAR gives hourly avg. precip for the day --> calculate a daily total
+
 
     %% Pressure (hPa)
 
