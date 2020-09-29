@@ -49,11 +49,6 @@ if strcmp(sGCM,'HAR')
             else
                 Leap = 0;
             end
-%problem line below!!!
-
-% if (180-m_Idx) >= 178
-%     m_Idx = 2; % If 178 doesn't work, try 177 in the line above, and 3 in this line
-% end
 
             vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[m_Idx-1,n_Idx-1,1], [3,3,8760+24*Leap], [1,1,1])));
             m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
@@ -178,7 +173,7 @@ for t = 1:365
     vAltNeighbors_temp = mElevations_3x3(:); %9x1
     mTempNeighbors_temp = squeeze(m3DA_Annual_Temp(:,:,t)); %3x3
     % Calculate lapse rate (deg C km^-1)
-    % scatter(vAltNeighbors_temp,mTempNeighbors_temp(:),'b')
+    scatter(vAltNeighbors_temp,mTempNeighbors_temp(:),'b')
     kLapseRate = polyfit(vAltNeighbors_temp,mTempNeighbors_temp(:),1); 
     kLapseRate = kLapseRate(1) * 1000;
     vLapseRates(t) = kLapseRate;   

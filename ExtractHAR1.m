@@ -469,7 +469,6 @@ elseif strcmp(sRes,'daily')
 
     % Convert Kelvin to Celsius
     Temp = Temp - 273.15;
-
     %% Precipitation (m/day)
 
     Precip = [];

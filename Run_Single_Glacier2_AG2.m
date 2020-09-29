@@ -3,7 +3,7 @@ clear
 tic
 
 GUI_Input.sGCM          = 'HAR';
-GUI_Input.HAR_temp_res  = 'hourly'; % 'daily' or 'hourly'
+GUI_Input.HAR_temp_res  = 'daily'; % 'daily' or 'hourly'
 GUI_Input.start_date    = '01/01/2001';
 GUI_Input.end_date      = '12/31/2013';
 % GUI_Input.start_date    = '01/01/2001';
@@ -17,7 +17,7 @@ GUI_Input.mb_date_2000      = '12/31/1999';
 GUI_Input.precip_threshold  = 1e-2; % (m day^-1)
 GUI_Input.snow_depth        = 0;
 GUI_Input.snow_density      = 250;
-GUI_Input.temp_forcing      = 0;
+% GUI_Input.temp_forcing      = 0;
 GUI_Input.lapse_rate        = 6.500;
 GUI_Input.iZ_0m_snow        = 0.001;
 GUI_Input.iZ_0m_ice         = 0.016;
@@ -68,7 +68,7 @@ for g = 121:150 %1:length(y) %r = 5006
         S(g*2+i,2)   = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13; 
         S(g*2+i+1,2) = geoMB(r);
         S(g*2+i+2,2) = geoMB_sigma(r);
-    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_hourly.mat'])
+    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_TEST.mat'])
     keyboard
     i = i+1;
     disp(g)
