@@ -1,4 +1,4 @@
-function [R1, R2, RAve ] = Full_Model_AG( GUI_Input,g )
+function [R1, R2, RAve ] = Full_Model_AG_backTOhourly_withPC( GUI_Input,g )
 
 % close all
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
@@ -128,7 +128,7 @@ elseif strcmp(sGCM,'HAR')
 elseif strcmp(sGCM,'WRF')
     
 end
-keyboard
+
 % For SW sensitivity testing:
 %   load SW_30gl_inAKGJ.mat; vSW_in = SW_akgj(1,:);
 %   also comment l. ~431
@@ -140,6 +140,7 @@ for i = 1:13 %2000-2013
   Idx = find(stTime.year==2000+i);
   hr_count(i) = sum(vP_d(Idx)~=0);
 end
+
 %% Start and End Dates
 
 % Start Date
@@ -433,23 +434,43 @@ for t = kStart:kEnd
 
     mU = vU(t) .* mGlacMask;
 
-    %% Apply precipitation gradient up to ? [no max now] (Precip increases with height and as a function of the amount of precip, unlike temp)
+    %% Apply precipitation gradient (mm/m) up to ? [no max now] (Precip increases with height and as a function of the amount of precip, unlike temp)
 
 %   If no precipitation gradient used, uncomment:
 %     mPrecip = (vP_d(t) .* mGlacMask);     
+
+% % if vP_d(t) > 0
+% %     vP_d(t) = vP_d(t) + 13*GUI_Input.PC(g)/sum(hr_count);
+% % end
 
     hourly_avg = GUI_Input.p1*mGlacAlt + GUI_Input.p2; %@ alt., mm/hr
 %   mPrecip = P @ HAR elev  + elev dif           * frac of average hourly P for yr * P lapse rate for yr (mm/m) .* mGlacMask;
     mPrecip = (vP_d(t) + (mGlacAlt - kAWS_Alt) .* (vP_d(t)./hourly_avg) * GUI_Input.p1) .* mGlacMask;  %PLR in m P / m elev b/c vP_d in m/h
 %       m     +          m                  m  * hr / mm       *        * mm / hr * m
-   
-if vP_d(t) > 0
-    mPrecip = mPrecip + (13*GUI_Input.PC(g)/sum(hr_count)).* mGlacMask;
-end  
 
+% % a = find(mPrecip > 0);
+% % if vP_d(t) > 0
+% %     mPrecip(mPrecip > 0) = mPrecip(mPrecip > 0) + 13*GUI_Input.PC(g)/(sum(hr_count)*size(a,1));
+% % end    
+% if vP_d(t) > 0
+%     mPrecip = mPrecip + (13*GUI_Input.PC(g)/sum(hr_count)).* mGlacMask;
+% end  
+%   To change mean MB, one (imperfect) way is:
+%   if vP_d(t) > 0
+%       mPrecip = mPrecip + GUI_Input.PC(g)/hr_count(stTime.year(t)-2000);
+%   end
     RAve.Pr_HAR(t)   = vP_d(t);
     RAve.Pr_glac(t)  = mean(mean((mPrecip(mGlacMask==1))));
     RAve.Pr_hravg(t) = mean(mean(hourly_avg));
+
+%   figure(g-120); hold on
+%   subplot(3,1,[1 2])
+%         plot(t,vP_d(t),'b.'); hold on
+%         plot(t,mean(mean((mPrecip(mGlacMask==1)))),'r.')
+%         drawnow
+%   subplot(313)
+%         plot(t,mean(mean(hourly_avg)),'k.'); hold on
+%         drawnow
     %% Calculate air pressure gradient with the hydrostatic equation (hPa/m)
     
     % Calculate day of the year 
@@ -499,7 +520,7 @@ end
     mTotalAccum(mT_a <= kRainThreshold) = (mTotalAccum(mT_a <= kRainThreshold) + mPrecip(mT_a <= kRainThreshold));
     mTotalAccum = mTotalAccum .* mGlacMask;
 
-    % Reset snow clock anywhere it snowed more than specified precitation threshold                      
+    % Reset snow clock anywhere it snowed more than specified precipitation threshold                      
     mSnowClock(mT_a <= kRainThreshold & mPrecip > kPrecipThresh) = 0;
     
     % If it snowed, add snow (only if T_a > kRainThreshold, i.e. snow, not rain) (m) - AG changed

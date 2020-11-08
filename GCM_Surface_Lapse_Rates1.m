@@ -173,7 +173,7 @@ for t = 1:365
     vAltNeighbors_temp = mElevations_3x3(:); %9x1
     mTempNeighbors_temp = squeeze(m3DA_Annual_Temp(:,:,t)); %3x3
     % Calculate lapse rate (deg C km^-1)
-    scatter(vAltNeighbors_temp,mTempNeighbors_temp(:),'b')
+%     scatter(vAltNeighbors_temp,mTempNeighbors_temp(:),'b')
     kLapseRate = polyfit(vAltNeighbors_temp,mTempNeighbors_temp(:),1); 
     kLapseRate = kLapseRate(1) * 1000;
     vLapseRates(t) = kLapseRate;   

@@ -6,18 +6,15 @@ GUI_Input.sGCM          = 'HAR';
 GUI_Input.HAR_temp_res  = 'hourly'; % 'daily' or 'hourly'
 GUI_Input.start_date    = '01/01/2001';
 GUI_Input.end_date      = '12/31/2013';
-% GUI_Input.start_date    = '01/01/2001';
-% GUI_Input.end_date      = '12/31/2001';
 GUI_Input.kRadius       = 98;
 % GUI_Input.output_filename   = ['/uufs/chpc.utah.edu/common/home/steenburgh-group6/Ali2/SEBM_output/Glacier_Number_'];
 GUI_Input.output_filename   = ['/uufs/chpc.utah.edu/common/home/u6027899/SEBM_output/Glacier_Number_'];
+GUI_Input.GlacNum_filename  = ['/uufs/chpc.utah.edu/common/home/u6027899/ASTER/ASTER_90m_Numbers.mat'];
 GUI_Input.ensemble_number   = 8;
-GUI_Input.mb_date_1975      = '01/01/1975';
-GUI_Input.mb_date_2000      = '12/31/1999';
-GUI_Input.precip_threshold  = 1e-2; % (m day^-1)
+GUI_Input.precip_threshold  = 250e-6; %(m/d) OLD: 1e-2; %(m day^-1) 
 GUI_Input.snow_depth        = 0;
 GUI_Input.snow_density      = 250;
-GUI_Input.temp_forcing      = 0;
+% GUI_Input.temp_forcing      = 0;
 GUI_Input.lapse_rate        = 6.500;
 GUI_Input.iZ_0m_snow        = 0.001;
 GUI_Input.iZ_0m_ice         = 0.016;
@@ -34,27 +31,44 @@ geoMB = G(:,11); % m w.e. / a
 geoMB_sigma = G(:,12);
 basin = G(:,49);
 
-% Glacier IDs to run
+% Glacier IDs:
 % % load deb10size10th5HAR.mat 
 % % load Indus1_rndm30.mat
-load 30gl_eachbasin_90mRES.mat
-% load clean_median.mat
+% % load 30gl_eachbasin_90mRES.mat
+% % load clean_median.mat
+load gapfilled_subset.mat
     foo = ~isnan(glac_nums(:));
     y = glac_nums(foo);
+    
+% Precipitation lapse rate:
 % load linear_fits.mat %contains 11 x 3 PLR
-load bisquare_fits_10basins.mat
-% load precip_corr_10b.mat 
+% load bisquare_fits.mat
+% load bisquare_fits_10basins.mat
+% load bisquare_fits_threshold.mat %.000125/day
+load bisquare_fits_threshold25.mat %.00025/day variable: PLR
+
+% load precip_corr_10b.mat
+% load PC_by_glacier_th25.mat
 %     foo = ~isnan(C(:));
 %     GUI_Input.PC = C(foo);
-% load PC_by_glacier_10b.mat 
-%     GUI_Input.PC = C;
+% %     GUI_Input.PC = C;
+
+
+for g = 1:length(y) 
+    Full_Model_AG_edits( GUI_Input,y,g);
+    disp(g)
+end
+
+return
+
+
 
 % S: solution vector: 
-S = nan(length(y),2);
+S = nan(length(y)*3,2);
 i = -1;
 
-for g = 5:5:length(y) %r = 5006 
-    GUI_Input.glacier_number = y(g); %= glID(r); 
+for g = 1:length(y) %r = 5006 
+    GUI_Input.glacier_number = y(g) %= glID(r); 
     r = find (glID==y(g));
 
     GUI_Input.glacier_basin = basin(r);
@@ -62,7 +76,7 @@ for g = 5:5:length(y) %r = 5006
     GUI_Input.p2 = PLR(basin(r),2);
     GUI_Input.r2 = PLR(basin(r),3);
     
-    [R1, R2, RAve] = Full_Model_AG_backTOhourly_withPC( GUI_Input,g );
+    [R1, R2, RAve] = Full_Model_AG_edits( GUI_Input,g );
 %     modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
 %     geodeticMB = geoMB(r);
 %     sigma      = geoMB_sigma(r);
@@ -70,13 +84,15 @@ for g = 5:5:length(y) %r = 5006
         S(g*2+i,2)   = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13; 
         S(g*2+i+1,2) = geoMB(r);
         S(g*2+i+2,2) = geoMB_sigma(r);
-    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_check_every5_take2.mat'])
+    save([GUI_Input.output_filename, num2str(GUI_Input.glacier_number),'_25dailyPandALB.mat'])
     i = i+1;
     disp(g)
     disp((R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13)
-
 end
+
+
 % IF BIG: save inside full_model script
+
 toc
 
 
@@ -102,7 +118,7 @@ toc
 % 17) t2        
 % 18) dt        
 % 19) valid_area_perc 
-% 20) H_m        
+% 20) H_m      
 % 21) debris_m    
 % 22) perc_debris 
 % 23) perc_pond  

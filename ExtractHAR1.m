@@ -497,7 +497,7 @@ elseif strcmp(sRes,'daily')
 
     end
 
-    % Convert to m / hr
+    % Convert to m / day
     Precip = Precip * 24 / 1000; %24h is necessary b/c HAR gives hourly avg. precip for the day --> calculate a daily total
 
 
