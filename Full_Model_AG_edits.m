@@ -38,7 +38,34 @@ iM_i        = min(row) - kBorder;
 iM_f        = max(row) + kBorder;
 iN_i        = min(col) - kBorder;
 iN_f        = max(col) + kBorder;
-if iM_i < 1
+if iM_i < 1 
+    R1 = nan;
+    R2.TotalAveMelt = nan;
+    R2.TotalAveAccum = nan;
+    R2.TotalAveSub = nan;
+    RAve = nan;
+    fprintf('mGlacNum issue at: %d\n',g)
+    return
+end
+if iN_i < 1
+    R1 = nan;
+    R2.TotalAveMelt = nan;
+    R2.TotalAveAccum = nan;
+    R2.TotalAveSub = nan;
+    RAve = nan;
+    fprintf('mGlacNum issue at: %d\n',g)
+    return
+end
+if iN_f >  17858   
+    R1 = nan;
+    R2.TotalAveMelt = nan;
+    R2.TotalAveAccum = nan;
+    R2.TotalAveSub = nan;
+    RAve = nan;
+    fprintf('mGlacNum issue at: %d\n',g)
+    return
+end
+if isempty(iM_i) || isempty(iN_i)
     R1 = nan;
     R2.TotalAveMelt = nan;
     R2.TotalAveAccum = nan;
@@ -63,7 +90,7 @@ mGlacMask   = mMask;
 % mDebMask    = mDebrisMask_Extract;
 
 % Make lat/lon matrices
-vLat    = (linspace(28.999861, 37.117361,kColLn))'; %28.999861 37.117361
+vLat    = (linspace(28.999861, 37.117361,kColLn))'; 
 mLat    = flipud(repmat(vLat,1,kRowLn));
 mLat    = mLat(iM_i:iM_f,iN_i:iN_f); %+1 removed
 vLong   = linspace(67.618750, 82.500694,kRowLn); %67.6187499 82.50069444
@@ -108,7 +135,6 @@ mLat(1:kBorder,:)       = []; mLat(end-kBorder+1:end,:) = [];
 mLat(:,1:kBorder)       = []; mLat(:,end-kBorder+1:end) = [];
 mLong(1:kBorder,:)      = []; mLong(end-kBorder+1:end,:) = [];
 mLong(:,1:kBorder)      = []; mLong(:,end-kBorder+1:end) = [];
-  
 %% Extract GCM Data    
 sGCM = GUI_Input.sGCM;
 
@@ -155,7 +181,6 @@ for i = 1:13 %2000-2013
   hr_count(i) = sum(vP_d(stTime.year==2000+i)~=0);
 end
 %% Start and End Dates
-
 % Start Date
 StartMonth  = str2double(GUI_Input.start_date(1:2));
 StartDay    = str2double(GUI_Input.start_date(4:5));
@@ -311,7 +336,9 @@ kLayerThick_2 = 2.78;
 
 % % Calculate temperature of the main body (DEEP) of the glacier (mean annual air temp) (C)
 mT_b = (nanmean(vT_a) + (kAWS_Alt - mGlacAlt) .* nanmean(vLapseRates_smooth) / 1000) .* mGlacMask;
-mT_b(mT_b > 0) = 0; % Molg & Hardy have at -1.2C at some depth? (check if changing)
+mT_b(mT_b > 0) = 0; 
+% mT_b = -1.2 .* mGlacMask; % Molg & Hardy have at -1.2C at 10m depth
+
 
 % Thermal diffusivity of ice (m^2 s^-1)
 kK_ice  = 1.16E-06;
@@ -565,7 +592,7 @@ mStabCorr = ones(size(mGlacMask));
     mQ_P(mT_a <= kRainThreshold) = 0;
     % Q_G (W m^-2)
 %     ERIC'S: mQ_G = ( kK * mK_s .* (mT_2 - mT_s) ./ kLayerThick_s ) ./ kLayerThick_s .* kTimeStep_sec .* mGlacMask;     % From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 206 (Eq. 5)
-    mQ_G = (kK * (mT_b - mT_s) ./ kLayerThick_s ) .* mGlacMask;  
+    mQ_G = (kK * (mT_2 - mT_s) ./ kLayerThick_s ) .* mGlacMask;  
     % Remove NaNs and stuff
     mQ_L(isnan(mQ_L)) = 0;
     % Net Energy (W m^-2) [AG] originally labeled "melt energy"
@@ -761,7 +788,6 @@ if GUI_Input.threeDsave == 1
     m3Q_m(:,:,t) = mQ_m;
 end
 
-
 end    
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -796,7 +822,7 @@ clearvars -except R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalAccum 
 if GUI_Input.threeDsave == 1 % IF BIG
     save([GUI_Input.output_filename, num2str(iGlacierNumber),'_3D_90m_exploreSW.mat'],'-v7.3')
 else
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_Indus1.mat'])
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_Chenab1_Gredo.mat'])
 end
 
 end

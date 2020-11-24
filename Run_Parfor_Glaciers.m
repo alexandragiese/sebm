@@ -1,5 +1,6 @@
 clear
 % addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm/SkyViewFactor');
+tic
 
 GUI_Input.sGCM          = 'HAR';
 GUI_Input.HAR_temp_res  = 'hourly'; % 'daily' or 'hourly'
@@ -31,11 +32,12 @@ GUI_Input.geo = csvread('DS_wRGI.csv');
 % basin = GUI_Input.geo(:,49);
 
 % Glacier IDs:
-% % load deb10size10th5HAR.mat 
-% % load Indus1_rndm30.mat
-% % load 30gl_eachbasin_90mRES.mat
-% % load clean_median.mat
-load gapfilled_subset.mat
+% load deb10size10th5HAR.mat 
+% load Indus1_rndm30.mat
+% load 30gl_eachbasin_90mRES.mat
+% load clean_median.mat
+% load gapfilled_subset.mat
+load UIB_under15pct_debris.mat; glac_nums = subbasin_sub;
     foo = ~isnan(glac_nums(:));
     y = glac_nums(foo);
     
@@ -53,13 +55,19 @@ GUI_Input.PLR = PLR;
 %     GUI_Input.PC = C(foo);
 load PC_fullUIB.mat
     GUI_Input.PC = PC_calc;
+% load subset_PC_latlon.mat
+% GUI_Input.PC = subset(:,2); %<-- for checking calibration!
+%     
 
 % % S: solution vector: 
 % S = nan(length(y)*3,2);
 % i = -1;
 
 poolobj = parpool('local',4);
-parfor g = 4961:5602 %1:length(y) 
-    Full_Model_AG_edits( GUI_Input,y,g);
+parfor g = 10505:11859
     disp(g)
+    Full_Model_AG_edits( GUI_Input,y,g);
 end
+
+toc
+delete(gcp('nocreate'))

@@ -1,4 +1,4 @@
-function [R1, R2, RAve ] = Full_Model_AG_edits( GUI_Input,y,g )
+function [R1, R2, RAve ] = Full_Model_AG_edits2( GUI_Input,y,g )
 
 % close all
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
@@ -73,7 +73,8 @@ kLat    = nanmean(mLat(mMask==1)); % Find average latitude of glacier
 kLong   = nanmean(mLong(mMask==1)); % Find average longitude of glacier
 clearvars mGlacNum mTileNumber row col iM_i iM_f iN_i iN_f ...
     vTileNumbers mGlacNum_Extract mDEM mMask t iTileNumber mM_Temp mN_Temp
-
+g, kLong, kLat
+keyboard
 %% Glacier slope and view factor
 iLat_min    = min(mLat(:));
 iLat_max    = max(mLat(:));

@@ -25,18 +25,19 @@ GUI_Input.iZ_0q_ice         = 0.004;
 GUI_Input.threeDsave        = 0;
 
 % Import Geodedic Mass Balance Data
-G     = csvread('DS_wRGI.csv');
-glID  = G(:,1);
-geoMB = G(:,11); % m w.e. / a
-geoMB_sigma = G(:,12);
-basin = G(:,49);
+GUI_Input.geo = csvread('DS_wRGI.csv');
+% glID  = GUI_Input.geo(:,1);
+% geoMB = GUI_Input.geo(:,11); % m w.e. / a
+% geoMB_sigma = GUI_Input.geo(:,12);
+% basin = GUI_Input.geo(:,49);
 
 % Glacier IDs:
-% % load deb10size10th5HAR.mat 
-% % load Indus1_rndm30.mat
-% % load 30gl_eachbasin_90mRES.mat
-% % load clean_median.mat
-load gapfilled_subset.mat
+% load deb10size10th5HAR.mat 
+% load Indus1_rndm30.mat
+% load 30gl_eachbasin_90mRES.mat
+% load clean_median.mat
+% load gapfilled_subset.mat
+load UIB_under15pct_debris.mat; glac_nums = subbasin_sub;
     foo = ~isnan(glac_nums(:));
     y = glac_nums(foo);
     
@@ -46,20 +47,115 @@ load gapfilled_subset.mat
 % load bisquare_fits_10basins.mat
 % load bisquare_fits_threshold.mat %.000125/day
 load bisquare_fits_threshold25.mat %.00025/day variable: PLR
+GUI_Input.PLR = PLR;
 
 % load precip_corr_10b.mat
 % load PC_by_glacier_th25.mat
 %     foo = ~isnan(C(:));
 %     GUI_Input.PC = C(foo);
-% %     GUI_Input.PC = C;
+load PC_fullUIB.mat
+    GUI_Input.PC = PC_calc;
+    
+    
+    
+n = [2951
+3508
+4319
+4332
+4421
+4755
+4814
+4878
+5603
+5637
+5797
+5832
+5852
+5958
+5964
+7696
+7697
+8613];
 
-
-for g = 1:length(y) 
-    Full_Model_AG_edits( GUI_Input,y,g);
+for g = n(18) 
+    Full_Model_AG_edits2( GUI_Input,y,g);
     disp(g)
 end
 
 return
+
+% g = 2951
+% kLong = 76.7687
+% kLat =3 5.1975
+
+% g = 3508
+% kLong = 77.2494
+% kLat = 35.3532
+
+% g = 4319
+% kLong = 76.7451
+% kLat = 35.1922
+
+% g = 4332
+% kLong = 77.0150
+% kLat = 35.1677
+
+% g = 4421
+% kLong = 77.0191
+% kLat = 35.2698
+   
+% g = 4755
+% kLong = 76.9397
+% kLat = 35.0155
+   
+% g = 4814
+% kLong = 76.8402
+% kLat = 35.0847
+
+% g = 4878
+% kLong = 75.9620
+% kLat = 35.4495
+
+% g = 5603
+% kLong = 75.1331
+% kLat = 36.3602
+
+% g = 5637
+% kLong = 75.1912
+% kLat = 36.7376
+
+% g = 5797
+% kLong = 75.2963
+% kLat = 36.7644
+
+% g = 5832
+% kLong = 75.6358
+% kLat = 36.5391
+
+% g = 5852
+% kLong = 75.5596
+% kLat = 36.3700
+
+% g = 5958
+% kLong = 75.4674
+% kLat = 36.5925
+
+% g = 5964
+% kLong = 75.4795
+% kLat = 36.1872
+
+% g = 7696
+% kLong = 74.5991
+% kLat = 35.2584
+
+% g = 7697
+% kLong = 74.5796
+% kLat = 35.2455
+
+% g = 8613
+% kLong = 71.8833
+% kLat = 36.4072
+
 
 
 
