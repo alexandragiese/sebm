@@ -24,50 +24,49 @@ GUI_Input.iZ_0q_snow        = 0.001;
 GUI_Input.iZ_0q_ice         = 0.004;
 GUI_Input.threeDsave        = 0;
 
-% Import Geodedic Mass Balance Data
+% Import Geodedic Mass Balance Data----------------------------------------
 GUI_Input.geo = csvread('DS_wRGI.csv');
 % glID  = GUI_Input.geo(:,1);
 % geoMB = GUI_Input.geo(:,11); % m w.e. / a
 % geoMB_sigma = GUI_Input.geo(:,12);
 % basin = GUI_Input.geo(:,49);
 
-% Glacier IDs:
-% load deb10size10th5HAR.mat 
-% load Indus1_rndm30.mat
-% load 30gl_eachbasin_90mRES.mat
-% load clean_median.mat
+% Glacier IDs:-------------------------------------------------------------
+% % load deb10size10th5HAR.mat 
+% % load Indus1_rndm30.mat
+% % load 30gl_eachbasin_90mRES.mat
+% % load clean_median.mat
+
 % load gapfilled_subset.mat
 load UIB_under15pct_debris.mat; glac_nums = subbasin_sub;
     foo = ~isnan(glac_nums(:));
     y = glac_nums(foo);
     
-% Precipitation lapse rate:
-% load linear_fits.mat %contains 11 x 3 PLR
-% load bisquare_fits.mat
-% load bisquare_fits_10basins.mat
-% load bisquare_fits_threshold.mat %.000125/day
+% Precipitation lapse rate:------------------------------------------------
+% % load linear_fits.mat %contains 11 x 3 PLR
+% % load bisquare_fits.mat
+% % load bisquare_fits_10basins.mat
+% % load bisquare_fits_threshold.mat %.000125/day
 load bisquare_fits_threshold25.mat %.00025/day variable: PLR
 GUI_Input.PLR = PLR;
 
-% load precip_corr_10b.mat
-% load PC_by_glacier_th25.mat
-%     foo = ~isnan(C(:));
-%     GUI_Input.PC = C(foo);
-load PC_fullUIB.mat
+% Precipitation Correction (Calibration) factor:---------------------------
+% % load precip_corr_10b.mat
+% % load PC_by_glacier_th25.mat
+% %     foo = ~isnan(C(:));
+% %     GUI_Input.PC = C(foo);
+
+% load subset_PC_latlon.mat %calibration subset: glacier number, PC, lat, lon
+% GUI_Input.PC = subset(:,2); %<-- for checking calibration! 
+load PC_fullUIB.mat          %<-- updated one basin at a time with different radius thresholds (perbasin.m local)
     GUI_Input.PC = PC_calc;
-% load subset_PC_latlon.mat
-% GUI_Input.PC = subset(:,2); %<-- for checking calibration!
-%     
 
-% % S: solution vector: 
-% S = nan(length(y)*3,2);
-% i = -1;
-
-poolobj = parpool('local',4);
-parfor g = 10505:11859
+% poolobj = parpool('local',4);
+% par
+for g = 10505
     disp(g)
-    Full_Model_AG_edits( GUI_Input,y,g);
+    Full_Model_AG_dt( GUI_Input,y,g);
 end
 
 toc
-delete(gcp('nocreate'))
+% delete(gcp('nocreate'))

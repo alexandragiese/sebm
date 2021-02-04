@@ -1,4 +1,4 @@
-function [R1, R2, RAve ] = Full_Model_AG_conduction_problem( GUI_Input,y,g )
+function [R1, R2, RAve ] = Full_Model_AG_edits( GUI_Input,y,g )
 
 % close all
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
@@ -339,7 +339,7 @@ kLayerThick_2 = 9.78; %Also tried to have T_b at depth 10m (mean Tair, consisten
 mT_b = (nanmean(vT_a) + (kAWS_Alt - mGlacAlt) .* nanmean(vLapseRates_smooth) / 1000) .* mGlacMask;
 mT_b(mT_b > 0) = 0; 
 % mT_b = -1.2 .* mGlacMask; % Molg & Hardy have at -1.2C at 10m depth
-
+nanmean(vT_a)
 % Thermal diffusivity of ice (m^2 s^-1)
 kK_ice  = 1.16E-06;
 % Thermal diffusivity of snow (m^2 s^-1)
@@ -354,10 +354,9 @@ RAve.S_in_ds= nan(length(vTime),1);
 RAve.L_in   = nan(length(vTime),1);
 RAve.L_out  = nan(length(vTime),1);
 RAve.Q_P    = nan(length(vTime),1);
-RAve.Q_G    = nan(length(vTime),1);
+RAve.Q_C    = nan(length(vTime),1);
 RAve.Q_m    = nan(length(vTime),1);
 RAve.Q_net  = nan(length(vTime),1);
-RAve.T_a    = nan(length(vTime),1);
 RAve.T_s    = nan(length(vTime),1);
 RAve.T_2    = nan(length(vTime),1);
 RAve.T_b    = nan(length(vTime),1);
@@ -594,60 +593,54 @@ mStabCorr = ones(size(mGlacMask));
     mQ_P = 1000 * kC_w * mPrecip .* mT_a / kTimeStep_sec .* mGlacMask;   % From Hock 2005 
     % Precipitation heat flux only from rain (i.e. when T_a > kRainThreshold) 
     mQ_P(mT_a <= kRainThreshold) = 0;
-    % Q_G (W m^-2)
+    % Q_C (W m^-2)
         % ERIC'S: mQ_G = ( kK * mK_s .* (mT_2 - mT_s) ./ kLayerThick_s ) ./ kLayerThick_s .* kTimeStep_sec .* mGlacMask;     % From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 206 (Eq. 5)
-    mQ_G = (kK * (mT_2 - mT_s) ./ kLayerThick_s ) .* mGlacMask;  
+    mQ_C = (kK * (mT_2 - mT_s) ./ kLayerThick_s ) .* mGlacMask;  
     % Remove NaNs and stuff
     mQ_L(isnan(mQ_L)) = 0;
     % Net Energy (W m^-2) [AG] originally labeled "melt energy"
-    mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L + mQ_P + mQ_G) .* mGlacMask;
+%     mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L + mQ_P + mQ_G) .* mGlacMask;
+    mQ_net = (mS_net + mL_out + mL_in + mQ_S + mQ_L) .* mGlacMask;
+disp('fluxes')
+nanmean(nanmean(mQ_net))
+nanmean(nanmean(mQ_C))
+%% Surface energy heat flux (mQ_net) = mQ_m + mG (Klok and Oerlemans, 2002)
+% "The surface energy flux supplies energy for melting (Qm) and for the glacier heat flux (G), which implies the warming or cooling of the snow or ice pack. 
+% Melting occurs when the surface temperature is at the melting point and the surface energy flux is positive. In that case, the glacier heat flux is is zero."
 
-%% Surface temperature: equations 11 and 12 of Arnold et al., 2006: roundabout approach
-%  Calculate change in temperature of top 2 layers for this timestep (K)   
-%     mDelta_T_s = (( mK_s .* (mT_2 - mT_s) ./ ...
-%         kLayerThick_s ) ./ kLayerThick_s + (mQ_net - mQ_G) ./ (kC_i .* ...
-%         mRho_s .* kLayerThick_s)) .* kTimeStep_sec .* mGlacMask;
-%     mDelta_T_2 = (  ( mK_2 .* (mT_b - mT_2) ./ ...
-%         kLayerThick_2 ) - ( mK_s .* (mT_2 - mT_s) )...
-%         ./ kLayerThick_s  ) ./ kLayerThick_2 .* kTimeStep_sec .* mGlacMask;         
-%     but in ^, mK_s ~= surf_diff = kK ./ (kC_i .* mRho_s)
-    
-%    mDelta_T_s = (   ( kK .* (mT_2 - mT_s) ./ kLayerThick_s ) ./ (kC_i .* mRho_s .* kLayerThick_s)...
-%                 + (mQ_net - mQ_G)                            ./ (kC_i .* mRho_s .* kLayerThick_s)   ) ...
-%                 .* kTimeStep_sec .* mGlacMask;    
-    mDelta_T_s = (mQ_net ./ (kC_i .* mRho_s .* kLayerThick_s)) .* kTimeStep_sec .* mGlacMask;
-%     mDelta_T_2 = (  kK .* (mT_b - mT_2) ./ (kC_i .* mRho_2 .* kLayerThick_2)  ...
-%                     -  kK .* (mT_2 - mT_s) ./ (kC_i .* mRho_s .* kLayerThick_s)  ) ...
-%                 ./ (kC_i .* mRho_s .* kLayerThick_2) .* kTimeStep_sec .* mGlacMask;     
-    mDelta_T_2 = (  kK .* (mT_b - mT_2) ./ (kLayerThick_2)  ...
-                    -  kK .* (mT_2 - mT_s) ./ (kLayerThick_s)  ) ...
-                ./ (kC_i .* mRho_2 .* kLayerThick_2) .* kTimeStep_sec .* mGlacMask;  
+% Melt energy (W m^-2)
+    mQ_m = zeros(size(mGlacMask));
+%     mQ_m(mT_s_Theor_s > 0) = mT_s(mT_s > 0) * kC_i .* mRho_s(mT_s > 0) * kLayerThick_s / kTimeStep_sec;
+    mQ_m(mT_s >= 0 & mQ_net > 0) = mQ_net (mT_s >= 0 & mQ_net > 0);
+% Glacier heat flux (W m^-2)
+    mG = zeros(size(mGlacMask));
+%     mG = mQ_net - mQ_m; % = mQ_net (mT_s < 0 | mQ_net < 0);    
+    mG(mT_s < 0 | mQ_net < 0) = mQ_net (mT_s < 0 | mQ_net < 0);
+
+disp('melt & G')
+nanmean(nanmean(mQ_m))
+nanmean(nanmean(mG))
+%% Surface temperature: Arnold et al., 2006
+
+    mDelta_T_s = ((mQ_C ./ (kC_i .* mRho_s .* kLayerThick_s)) + (mG ./ (kC_i .* mRho_s .* kLayerThick_s))) ...
+        .* kTimeStep_sec .* mGlacMask;  
+    mDelta_T_2 = kK .* (  (mT_b - mT_2) ./ (kLayerThick_2)  -   (mT_2 - mT_s) ./ (kLayerThick_s)  ) ./ ...
+        (kC_i .* mRho_2 .* kLayerThick_2) .* kTimeStep_sec .* mGlacMask;  
             
     mT_s = mT_s + mDelta_T_s;
     mT_2 = mT_2 + mDelta_T_2;
     
+% mT_s(mT_s<-50) = -50;
+
+disp('temps')
+nanmean(nanmean(mT_s))
+nanmean(nanmean(mT_2))
 %  mT_2 should never be above freezing
     if isempty(find((mT_2>0),1)) == 0
         [row, col]  = find(mT_2>0);
         fprintf('Surface Temp 2 exceeds freezing at row %d and col %d\n', row, col)
         return
     end
-    
-% Remove lines that don't conserve energy
-    % mT_s(mT_s<-50) = -50; 
-    % mT_s_Act_2(mT_s_Act_2 > 0) = 0; 
-    %% Melt energy (W m^-2)
-% ERIC'S version had Theoretical surface temperature (K) and Actual surface temperature (which can't be above zero) (K)
-% The sole purpose of this "theoretical temperature" is the melt calculation.  
-% Instead, compute melt & Ts from energy balance:
-    mQ_m = zeros(size(mGlacMask));
-%     mQ_m(mT_s_Theor_s > 0) = mT_s(mT_s > 0) * kC_i .* mRho_s(mT_s > 0) * kLayerThick_s / kTimeStep_sec;
-    mQ_m(mT_s > 0) = mT_s(mT_s > 0) * kC_i .* ...
-        mRho_s(mT_s > 0) * kLayerThick_s / kTimeStep_sec;
-% % Surface temperature: these are equivalent within machine precision (checked then kept as == 0 to be consistent with rest of code)
-    mT_s(mT_s > 0) = 0; %(C)
-%     mT_s = mT_s - mQ_m * kTimeStep_sec ./ (kC_i .* mRho_s .* kLayerThick_s) .* mGlacMask;
-%     mT_s (mT_s > -(1*10^(-12)) & mT_s < (1*10^(-12)) ) = 0; %reset to exactly zero... corrects for double precision
 
     %% Freezing of rain  
     % Rain that falls when the cold content of the surface layer is zero 
@@ -736,10 +729,9 @@ mStabCorr = ones(size(mGlacMask));
     RAve.L_in(t) = nanmean(mL_in(mGlacMask==1));
     RAve.L_out(t) = nanmean(mL_out(mGlacMask==1));
     RAve.Q_P(t) = nanmean(mQ_P(mGlacMask==1));
-    RAve.Q_G(t) = nanmean(mQ_G(mGlacMask==1));
+    RAve.Q_C(t) = nanmean(mQ_C(mGlacMask==1));
     RAve.Q_m(t) = nanmean(mQ_m(mGlacMask==1));
     RAve.Q_net(t) = nanmean(mQ_net(mGlacMask==1));   
-    RAve.T_a(t) = nanmean(mT_a(mGlacMask==1));
     RAve.T_s(t) = nanmean(mT_s(mGlacMask==1));
     RAve.T_2(t) = nanmean(mT_2(mGlacMask==1));
     RAve.T_b(t)   = nanmean(mT_b(mGlacMask==1));
@@ -865,7 +857,7 @@ clearvars -except R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalAccum 
 if GUI_Input.threeDsave == 1 % IF BIG
     save([GUI_Input.output_filename, num2str(iGlacierNumber),'_3D_90m_exploreSW.mat'],'-v7.3')
 else
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_CP.mat'])
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_KO.mat'])
 end
 
 end

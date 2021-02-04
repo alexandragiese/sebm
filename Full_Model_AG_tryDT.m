@@ -1,4 +1,4 @@
-function [R1, R2, RAve ] = Full_Model_AG_conduction_problem( GUI_Input,y,g )
+function [R1, R2, RAve ] = Full_Model_AG_dt( GUI_Input,y,g )
 
 % close all
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
@@ -180,6 +180,18 @@ hr_count = nan(13,1);
 for i = 1:13 %2000-2013
   hr_count(i) = sum(vP_d(stTime.year==2000+i)~=0);
 end
+
+%TIME STEP ADJUSTMENT
+k = 6;
+
+% vSW_in = movmean(vSW_in,k);
+% vLW_in = movmean(vLW_in,k);
+% vU     = movmean(vU,k);
+% % vP_d = movmean(vP_d,k);
+% vT_a = movmean(vT_a,k);
+% vP_a = movmean(vP_a,k);
+% vRH = movmean(vRH,k);
+
 %% Start and End Dates
 % Start Date
 StartMonth  = str2double(GUI_Input.start_date(1:2));
@@ -198,7 +210,7 @@ kEndDay     = find(stTime.day==EndDay & stTime.month==EndMonth & stTime.year==En
 %% Time Step
 
 % Data resolution (minutes)
-kData_Resolution = Data.Resolution_mins;
+kData_Resolution = Data.Resolution_mins * k;
 % Time step (days)
 kTimeStep_days  = kData_Resolution / (24 * 60); 
 % Time step (seconds)
@@ -412,7 +424,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % for t = kStart:kEnd 
-for t = [kStart+1:17544, kStart:kEnd] %SPINUP7NOV
+for t = [kStart+1:k:17544, kStart:k:kEnd] %SPINUP7NOV
     %% Extract timestep data
     mSW_in = vSW_in(t) .* mGlacMask;
     mSW_in = Calc_SW_in_dir_Sl_As1(mSW_in,mLat,mLong,mGlacAlt,mSlope,mAspect,stTime,mGlacMask,kTimeStep_days,sGCM,t);
@@ -422,21 +434,21 @@ for t = [kStart+1:17544, kStart:kEnd] %SPINUP7NOV
     %% Apply precipitation gradient up  (Precip increases with height and as a function of the amount of precip, unlike temp)
 
 %   If no precipitation gradient used, uncomment:
-%     mPrecip = (vP_d(t) .* mGlacMask);     
+   mPrecip = (vP_d(t) .* mGlacMask);     
 
-    hourly_avg = p1*mGlacAlt + p2; %@ alt., mm/hr
-%   mPrecip = P @ HAR elev  + elev dif           * frac of average hourly P for yr * P lapse rate for yr (mm/m) .* mGlacMask;
-    mPrecip = (vP_d(t) + (mGlacAlt - kAWS_Alt) .* (vP_d(t)./hourly_avg) * p1) .* mGlacMask;  %PLR in m P / m elev b/c vP_d in m/h
-%       m     +          m                  m  * hr / mm       *        * mm / hr * m
-
-    RAve.Pr_HAR(t)   = vP_d(t);
-    RAve.Pr_glac(t)  = mean(mean((mPrecip(mGlacMask==1))));
-    RAve.Pr_hravg(t) = mean(mean(hourly_avg));
-    
-%  Apply precipitation correction (PC) to shift mean
-if vP_d(t) > 0
-    mPrecip = mPrecip + (13*GUI_Input.PC(g)/sum(hr_count)).* mGlacMask;
-end  
+%     hourly_avg = p1*mGlacAlt + p2; %@ alt., mm/hr
+% %   mPrecip = P @ HAR elev  + elev dif           * frac of average hourly P for yr * P lapse rate for yr (mm/m) .* mGlacMask;
+%     mPrecip = (vP_d(t) + (mGlacAlt - kAWS_Alt) .* (vP_d(t)./hourly_avg) * p1) .* mGlacMask;  %PLR in m P / m elev b/c vP_d in m/h
+% %       m     +          m                  m  * hr / mm       *        * mm / hr * m
+% 
+%     RAve.Pr_HAR(t)   = vP_d(t);
+%     RAve.Pr_glac(t)  = mean(mean((mPrecip(mGlacMask==1))));
+%     RAve.Pr_hravg(t) = mean(mean(hourly_avg));
+%     
+% %  Apply precipitation correction (PC) to shift mean
+% if vP_d(t) > 0
+%     mPrecip = mPrecip + (13*GUI_Input.PC(g)/sum(hr_count)).* mGlacMask;
+% end  
 
     %% Calculate air pressure gradient with the hydrostatic equation (hPa/m)
     
@@ -865,7 +877,7 @@ clearvars -except R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalAccum 
 if GUI_Input.threeDsave == 1 % IF BIG
     save([GUI_Input.output_filename, num2str(iGlacierNumber),'_3D_90m_exploreSW.mat'],'-v7.3')
 else
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_CP.mat'])
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_CP6h.mat'])
 end
 
 end
