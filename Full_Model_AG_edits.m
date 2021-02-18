@@ -1,4 +1,4 @@
-function [R1, R2, RAve ] = Full_Model_AG_conduction_problem( GUI_Input,y,g )
+function [R1, R2, RAve ] = Full_Model_AG_edits( GUI_Input,y,g )
 
 % close all
 addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
@@ -39,7 +39,6 @@ iM_f        = max(row) + kBorder;
 iN_i        = min(col) - kBorder;
 iN_f        = max(col) + kBorder;
 if iM_i < 1 
-    R1 = nan;
     R2.TotalAveMelt = nan;
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
@@ -48,7 +47,6 @@ if iM_i < 1
     return
 end
 if iN_i < 1
-    R1 = nan;
     R2.TotalAveMelt = nan;
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
@@ -57,7 +55,6 @@ if iN_i < 1
     return
 end
 if iN_f >  17858   
-    R1 = nan;
     R2.TotalAveMelt = nan;
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
@@ -66,7 +63,6 @@ if iN_f >  17858
     return
 end
 if isempty(iM_i) || isempty(iN_i)
-    R1 = nan;
     R2.TotalAveMelt = nan;
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
@@ -279,6 +275,8 @@ kRho_ice    = 900;
 %% Make glacier matrices
 
 mTotalMelt  = zeros(size(mGlacMask));
+mTotalSnowMelt  = zeros(size(mGlacMask));
+mTotalIceMelt  = zeros(size(mGlacMask));
 
 %% Initial snow depth across glacier
       
@@ -387,6 +385,11 @@ RAve.GlacMask = size(mGlacMask);
 RAve.res      = GUI_Input.GlacNum_filename;
 
 TH_i.Accum = nan(size(mGlacMask));
+
+    RAve.U = nan(length(vTime),1);
+    RAve.Prcp = nan(length(vTime),1);
+    RAve.P_a = nan(length(vTime),1);
+    RAve.VP_a = nan(length(vTime),1);
     
 % FOR SAVING FULLY DISTRIBUTED VARIABLES -----------------------------------------------------------------
 if GUI_Input.threeDsave == 1
@@ -432,8 +435,8 @@ for t = [kStart+1:17544, kStart:kEnd] %SPINUP7NOV
     RAve.Pr_HAR(t)   = vP_d(t);
     RAve.Pr_glac(t)  = mean(mean((mPrecip(mGlacMask==1))));
     RAve.Pr_hravg(t) = mean(mean(hourly_avg));
-    
-%  Apply precipitation correction (PC) to shift mean
+
+% %  Apply precipitation correction (PC) to shift mean
 if vP_d(t) > 0
     mPrecip = mPrecip + (13*GUI_Input.PC(g)/sum(hr_count)).* mGlacMask;
 end  
@@ -713,6 +716,8 @@ mStabCorr = ones(size(mGlacMask));
     
     if t == kStart %SPINUP7NOV
         mTotalMelt  = zeros(size(mGlacMask));
+        mTotalSnowMelt  = zeros(size(mGlacMask));
+        mTotalIceMelt  = zeros(size(mGlacMask));
         mTotalSub   = zeros(size(mGlacMask));
         mTotalEvap  = zeros(size(mGlacMask));
         mTotalAccum = zeros(size(mGlacMask));
@@ -720,6 +725,8 @@ mStabCorr = ones(size(mGlacMask));
         % Total average glacier melt (m w.eq.)
         mTotalMelt = mTotalMelt - (((mSnowMelt * kRho_snow / 1000) + ...
             (mIceMelt * kRho_ice / 1000)));
+        mTotalSnowMelt = mTotalSnowMelt - (mSnowMelt * kRho_snow / 1000);
+        mTotalIceMelt  = mTotalIceMelt  - (mIceMelt  * kRho_ice / 1000);
         % Total sublimation (m w.e.)
         mTotalSub = mTotalSub - (mSub .* kRho_snow / 1000);
         % Total evaporation (m w.e.)
@@ -760,17 +767,24 @@ mStabCorr = ones(size(mGlacMask));
     RAve.DeltaTs(t) = nanmean(nanmean(mQ_net(mGlacMask==1) ./ (kC_i .* mRho_s(mGlacMask==1)))); %\Delta T_s dz/dt
     RAve.DeltaT2(t) = nanmean(nanmean( (kK .* (mT_b(mGlacMask==1) - mT_2(mGlacMask==1))./(kLayerThick_2) - kK .* (mT_2(mGlacMask==1) - mT_s(mGlacMask==1)) ./ (kLayerThick_s)) ./ (kC_i .* mRho_2(mGlacMask==1)) )); %Delta T_2 dz/dt
 
+    RAve.U(t) = nanmean(nanmean(mU(mGlacMask==1)));
+    RAve.Prcp(t) = nanmean(nanmean(mPrecip(mGlacMask==1)));
+    RAve.P_a(t) = nanmean(nanmean(mP_a(mGlacMask==1)));
+    RAve.VP_a(t) = nanmean(nanmean(mVP_a(mGlacMask==1)));
+
     
 % Save distributed variables for thickness tracking @ end of spin up
 if t == 17544 
     if isnan(TH_i.Accum(1,1))
-    TH_i.SnowThickness_s = mSnowThickness_s;
-    TH_i.SnowThickness_2 = mSnowThickness_2;
-    TH_i.SnowDepth = mSnowDepth;
-    TH_i.SnowMelt  = mSnowMelt;
-    TH_i.IceSurface = mIceSurface;
-    TH_i.IceMelt = mIceMelt;
+%     TH_i.SnowThickness_s = mSnowThickness_s;
+%     TH_i.SnowThickness_2 = mSnowThickness_2;
+%     TH_i.SnowDepth = mSnowDepth;
+%     TH_i.SnowMelt  = mSnowMelt;
+%     TH_i.IceSurface = mIceSurface;
+%     TH_i.IceMelt = mIceMelt;
     TH_i.Melt = mTotalMelt;
+    TH_i.SnowMelt = mTotalSnowMelt;
+    TH_i.IceMelt = mTotalIceMelt;
     TH_i.Accum = mTotalAccum;
     TH_i.Sub = mTotalSub;
     TH_i.Evap = mTotalEvap;
@@ -778,13 +792,15 @@ if t == 17544
 end
  % Save distributed variables for thickness tracking @ end of run
 if t == kEnd
-    TH_f.SnowThickness_s = mSnowThickness_s;
-    TH_f.SnowThickness_2 = mSnowThickness_2;
-    TH_f.SnowDepth = mSnowDepth;
-    TH_f.SnowMelt  = mSnowMelt;
-    TH_f.IceSurface = mIceSurface;
-    TH_f.IceMelt = mIceMelt;
+%     TH_f.SnowThickness_s = mSnowThickness_s;
+%     TH_f.SnowThickness_2 = mSnowThickness_2;
+%     TH_f.SnowDepth = mSnowDepth;
+%     TH_f.SnowMelt  = mSnowMelt;
+%     TH_f.IceSurface = mIceSurface;
+%     TH_f.IceMelt = mIceMelt;
     TH_f.Melt = mTotalMelt;
+    TH_f.SnowMelt = mTotalSnowMelt;
+    TH_f.IceMelt = mTotalIceMelt;
     TH_f.Accum = mTotalAccum;
     TH_f.Sub = mTotalSub;
     TH_f.Evap = mTotalEvap;
@@ -839,10 +855,6 @@ end
 
 %% Total Mass changes
 
-if ~exist('R1','var')
-    R1 = nan;
-end
-
 % Total average melt (m w.eq.)
 R2.TotalAveMelt = nanmean(mTotalMelt(mGlacMask == 1));
 % Total accumulation (m w.eq.)
@@ -854,18 +866,17 @@ R2.TotalAveEvap = nanmean(mTotalEvap(mGlacMask == 1));
 
 clear r
 r = find (glID==y(g)); %index in geodedic MB spreadsheet
+    R1.modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
+    R1.geodeticMB = geoMB(r);
+    R1.sigma      = geoMB_sigma(r);
 
-    modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
-    geodeticMB = geoMB(r);
-    sigma      = geoMB_sigma(r);
-
-clearvars -except R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalAccum mGlacMask mGlacAlt stTime ...
-    mTotalSub mTotalEvap Data kAWS_Alt modelMB geodeticMB sigma TH_i TH_f
+clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalSnowMelt mTotalIceMelt mTotalAccum mGlacMask mGlacAlt stTime ...
+    mTotalSub mTotalEvap Data kAWS_Alt modelMB geodeticMB sigma TH_i TH_f y g
 
 if GUI_Input.threeDsave == 1 % IF BIG
     save([GUI_Input.output_filename, num2str(iGlacierNumber),'_3D_90m_exploreSW.mat'],'-v7.3')
 else
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_CP.mat'])
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_CALcheck.mat'])
 end
 
 end
