@@ -14,7 +14,7 @@ GUI_Input.GlacNum_filename  = ('/uufs/chpc.utah.edu/common/home/u6027899/ASTER/A
 GUI_Input.ensemble_number   = 8;
 GUI_Input.precip_threshold  = 250e-6; %(m/d) OLD: 1e-2; %(m day^-1) 
 GUI_Input.snow_density      = 330; %Arnold. Eric: 250;
-GUI_Input.lapse_rate        = 6.500;
+% GUI_Input.lapse_rate        = 6.500;
 GUI_Input.iZ_0m_snow        = 0.001;
 GUI_Input.iZ_0m_ice         = 0.016;
 GUI_Input.iZ_0T_snow        = 0.001;
@@ -40,11 +40,14 @@ GUI_Input.PLR = PLR;
 % cal_PC = zeros(length(y),1); % CAL
 % load([GUI_Input.cal_filename, 'calibration_march.mat'],'cal_PC')
 %   GUI_Input.PC = cal_PC;
-load PC_fullUIB.mat          %<-- updated one basin at a time with different radius thresholds (perbasin.m local)
+% load PC_fullUIB.mat          %<-- updated one basin at a time with different radius thresholds (perbasin.m local)
+load PC_20km10.mat
     GUI_Input.PC = PC_calc;
+% GUI_Input.PC = zeros(13971,1);
 
-poolobj = parpool('local',4);
-parfor g = 5603:6200 %7695 % g is the index in the LIST of glacier numbers; y(g) is the glacier number %CAL
+% poolobj = parpool('local',4);
+% par
+for g = 2302:4960 % g is the index in the LIST of glacier numbers; y(g) is the glacier number %CAL
     disp(g)
     [R1, ~, ~ ] = Full_Model( GUI_Input,y,g);
 %     mdl(g)  = R1.modelMB;

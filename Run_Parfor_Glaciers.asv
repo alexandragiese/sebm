@@ -40,11 +40,13 @@ GUI_Input.PLR = PLR;
 % cal_PC = zeros(length(y),1); % CAL
 % load([GUI_Input.cal_filename, 'calibration_march.mat'],'cal_PC')
 %   GUI_Input.PC = cal_PC;
-load PC_fullUIB.mat          %<-- updated one basin at a time with different radius thresholds (perbasin.m local)
+% load PC_fullUIB.mat          %<-- updated one basin at a time with different radius thresholds (perbasin.m local)
+load PC_20km10.mat
     GUI_Input.PC = PC_calc;
+% GUI_Input.PC = zeros(13971,1);
 
 poolobj = parpool('local',4);
-parfor g = 12016:13000 %finish sutlej: 13971 % g is the index in the LIST of glacier numbers; y(g) is the glacier number %CAL
+parfor g = 12016: % g is the index in the LIST of glacier numbers; y(g) is the glacier number %CAL
     disp(g)
     [R1, ~, ~ ] = Full_Model( GUI_Input,y,g);
 %     mdl(g)  = R1.modelMB;

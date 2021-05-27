@@ -1,7 +1,8 @@
 function [R1, R2, RAve ] = Full_Model (GUI_Input,y,g )
+basinname = 'NubraShyok';
 
 % close all
-addpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm');
+addpath(genpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm'));
 
 %% Load files
 mGlacNum    = load(GUI_Input.GlacNum_filename,'mGlacNum');
@@ -42,7 +43,8 @@ if iM_i < 1
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
     RAve = nan;
-    fprintf('mGlacNum issue at: %d\n',g)
+    fprintf('A mGlacNum issue at: %d\n',g)
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_',basinname,'.mat'])
     return
 end
 if iN_i < 1
@@ -50,7 +52,8 @@ if iN_i < 1
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
     RAve = nan;
-    fprintf('mGlacNum issue at: %d\n',g)
+    fprintf('B mGlacNum issue at: %d\n',g)
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_',basinname,'.mat'])
     return
 end
 if iN_f >  17858   
@@ -58,7 +61,8 @@ if iN_f >  17858
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
     RAve = nan;
-    fprintf('mGlacNum issue at: %d\n',g)
+    fprintf('C mGlacNum issue at: %d\n',g)
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_',basinname,'.mat'])
     return
 end
 if isempty(iM_i) || isempty(iN_i)
@@ -66,7 +70,8 @@ if isempty(iM_i) || isempty(iN_i)
     R2.TotalAveAccum = nan;
     R2.TotalAveSub = nan;
     RAve = nan;
-    fprintf('mGlacNum issue at: %d\n',g)
+    fprintf('D mGlacNum issue at: %d\n',g)
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_',basinname,'.mat'])
     return
 end
 
@@ -822,12 +827,12 @@ r = find (glID==y(g)); %index in geodedic MB spreadsheet
     R1.sigma      = geoMB_sigma(r);
 
 clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalSnowMelt mTotalIceMelt mTotalAccum mGlacMask mGlacAlt stTime ...
-    mTotalSub mTotalEvap Data kAWS_Alt modelMB geodeticMB sigma TH_i TH_f y g
+    mTotalSub mTotalEvap Data kAWS_Alt modelMB geodeticMB sigma TH_i TH_f y g basinname
 
 if GUI_Input.threeDsave == 1 % IF BIG
     save([GUI_Input.output_filename, num2str(iGlacierNumber),'_3D_90m_exploreSW.mat'],'-v7.3')
 else
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_Chenab1.mat'])
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_',basinname,'X.mat'])
 end
 
 % load([GUI_Input.cal_filename, 'ALLbasins_synopsis.mat'],'mdl','geo','area','melt','accum','sub') 

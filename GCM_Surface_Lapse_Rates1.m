@@ -49,7 +49,10 @@ if strcmp(sGCM,'HAR')
             else
                 Leap = 0;
             end
-
+if m_Idx == 1
+    m_Idx = 2;
+    disp('changed m index to 2 in lapse rates script')
+end
             vTemp_Data_3x3 = double(squeeze(ncread(sFileName, 't2',[m_Idx-1,n_Idx-1,1], [3,3,8760+24*Leap], [1,1,1])));
             m3T_a_3x3 = cat(3, m3T_a_3x3, vTemp_Data_3x3);
 
@@ -178,4 +181,5 @@ for t = 1:365
     kLapseRate = kLapseRate(1) * 1000;
     vLapseRates(t) = kLapseRate;   
 end
+figure; plot(vLapseRates,'.')
 warning('on','all')
