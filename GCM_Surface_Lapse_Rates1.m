@@ -28,7 +28,6 @@ if strcmp(sGCM,'HAR')
 
     vLat = mLat(:);
     vLong = mLong(:);
-
     [~, iLatLongIdx] = min((vLat - kLat).^2 + (vLong - kLong).^2);
     [m_Idx, n_Idx] = ind2sub([270, 180], iLatLongIdx);
     
@@ -181,5 +180,4 @@ for t = 1:365
     kLapseRate = kLapseRate(1) * 1000;
     vLapseRates(t) = kLapseRate;   
 end
-figure; plot(vLapseRates,'.')
 warning('on','all')

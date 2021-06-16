@@ -1,0 +1,43 @@
+
+                            < M A T L A B (R) >
+                  Copyright 1984-2020 The MathWorks, Inc.
+                  R2020b (9.9.0.1467703) 64-bit (glnxa64)
+                              August 26, 2020
+
+ 
+To get started, type doc.
+For product information, visit www.mathworks.com.
+ 
+Starting parallel pool (parpool) using the 'local' profile ...
+Connected to the parallel pool (number of workers: 4).
+
+ans =
+
+     1405861
+
+
+ans =
+
+     1423100
+
+
+ans =
+
+     1404770
+
+
+ans =
+
+     1408555
+
+Elapsed time is 176.418593 seconds.
+Elapsed time is 220.680014 seconds.
+Elapsed time is 226.500210 seconds.
+Elapsed time is 157.569793 seconds.
+Elapsed time is 200.501267 seconds.
+Elapsed time is 213.575492 seconds.
+Elapsed time is 159.677676 seconds.
+Elapsed time is 207.406502 seconds.
+Elapsed time is 212.605491 seconds.
+Elapsed time is 158.972882 seconds.
+Elapsed time is 164.470474 seconds.

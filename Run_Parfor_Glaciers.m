@@ -47,7 +47,8 @@ load PC_20km10.mat
 
 % poolobj = parpool('local',4);
 % par
-for g = 2302:4960 % g is the index in the LIST of glacier numbers; y(g) is the glacier number %CAL
+sp12 = [736 6355 4036 11031 9381 12850 5107 2893 6346 12188 10593 2880 4620 4652 4654 4662];
+for g = sp12(16) %:4960 % g is the index in the LIST of glacier numbers; y(g) is the glacier number %CAL
     disp(g)
     [R1, ~, ~ ] = Full_Model( GUI_Input,y,g);
 %     mdl(g)  = R1.modelMB;

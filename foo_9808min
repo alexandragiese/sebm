@@ -1,0 +1,86 @@
+
+                                   < M A T L A B (R) >
+                         Copyright 1984-2020 The MathWorks, Inc.
+                         R2020b (9.9.0.1467703) 64-bit (glnxa64)
+                                     August 26, 2020
+
+ 
+To get started, type doc.
+For product information, visit www.mathworks.com.
+ 
+
+ans =
+
+     1424304
+
+Elapsed time is 177.569429 seconds.
+Elapsed time is 169.522431 seconds.
+{Operation terminated by user during Extremes_Model (line 164)
+
+
+In Extremes_calibration (line 57)
+        [R1, ~, ~] = Extremes_Model (GUI_Input,y,g,ct,fl );
+
+In Extremes_Parfor_Calibration (line 57)
+    Extremes_calibration(GUI_Input,y,g,k)
+} 
+{Operation terminated by user during Extremes_Model (line 164)
+
+
+In Extremes_calibration (line 57)
+        [R1, ~, ~] = Extremes_Model (GUI_Input,y,g,ct,fl );
+
+In Extremes_Parfor_Calibration (line 57)
+    Extremes_calibration(GUI_Input,y,g,k)
+} 
+[Warning: The following error was caught while executing 'internal.hotplug.EventSource' class
+destructor:
+Dot indexing is not supported for variables of this type.
+
+Error in internal.hotplug.EventSource/stop (line 69)
+            obj.Channel.close();
+
+Error in internal.hotplug.EventSource/delete (line 53)
+            stop(obj);
+
+Error in internal.hotplug.EventSource (line 35)
+            pluginDir = toolboxdir(fullfile('shared','hotpluglib','bin',...
+
+Error in internal.deviceplugindetection.Manager (line 173)
+        obj.USBDetectorObject = internal.hotplug.EventSource();
+
+Error in internal.deviceplugindetection.Manager.getInstance (line 246)
+            devicePluginManagerInstance = internal.deviceplugindetection.Manager();] 
+[> In internal.hotplug.EventSource (line 35)
+In internal.deviceplugindetection.Manager (line 173)
+In internal.deviceplugindetection/Manager/getInstance (line 246)] 
+{Operation terminated by user during asyncio.Channel/lock (line 360)
+
+
+In asyncio.Channel (line 130)
+    asyncio.Channel.lock();
+
+In internal.hotplug.EventSource (line 40)
+            obj.Channel = asyncio.Channel(fullfile(pluginDir, 'hotplugdevice'),...
+
+In internal.deviceplugindetection.Manager (line 173)
+        obj.USBDetectorObject = internal.hotplug.EventSource();
+
+In internal.deviceplugindetection.Manager.getInstance (line 246)
+            devicePluginManagerInstance = internal.deviceplugindetection.Manager();
+} 
+{Operation terminated by user during asyncio.Channel/lock (line 360)
+
+
+In asyncio.Channel (line 130)
+    asyncio.Channel.lock();
+
+In internal.hotplug.EventSource (line 40)
+            obj.Channel = asyncio.Channel(fullfile(pluginDir, 'hotplugdevice'),...
+
+In internal.deviceplugindetection.Manager (line 173)
+        obj.USBDetectorObject = internal.hotplug.EventSource();
+
+In internal.deviceplugindetection.Manager.getInstance (line 246)
+            devicePluginManagerInstance = internal.deviceplugindetection.Manager();
+} 
