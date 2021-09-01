@@ -1,8 +1,7 @@
-function [R1, R2, RAve ] = Full_Model (GUI_Input,y,g )
-basinname = 'NubraShyok'; %ADJUST THIS AS NECESSARY
-% close all
+function [R1, R2, RAve] = Uncertainty_model (GUI_Input,y,g,ct,fl )
+tic
+close all
 addpath(genpath('/uufs/chpc.utah.edu/common/home/u6027899/sebm'));
-
 %% Load files
 mGlacNum    = load(GUI_Input.GlacNum_filename,'mGlacNum');
 mGlacNum    = mGlacNum.mGlacNum;
@@ -11,7 +10,7 @@ mGlacNum    = mGlacNum.mGlacNum;
 glID  = GUI_Input.geo(:,1);
 geoMB = GUI_Input.geo(:,11); % m w.e. / a
 geoMB_sigma = GUI_Input.geo(:,12);
-basin = GUI_Input.geo(:,49);
+basin = GUI_Input.geo(:,49); basinname = 'X';
 R1.area = GUI_Input.geo(g,13); %m2
 
 glacier_number = y(g); 
@@ -19,6 +18,7 @@ r = find (glID==y(g)); %index in geodetic MB spreadsheet
 
 p1 = GUI_Input.PLR(basin(r),1);
 p2 = GUI_Input.PLR(basin(r),2);
+
 
 %% Specifics for larger region of interest
 
@@ -28,8 +28,7 @@ kRowLn = size(mGlacNum,2); % NUMBER OF COL  (misnamed)
 %% Glacier to extract
 iGlacierNumber  = glacier_number; 
 
-% Border (in matrix indices) necessary for sky view factor calculation,
-% which doesn't take place for Giese & al. study
+% Border (in matrix indices) necessary for sky view factor calculation
 kBorder         = 180;
 
 % Find indices of glacier edges
@@ -75,7 +74,8 @@ if isempty(iM_i) || isempty(iN_i)
     return
 end
 
-mGlacNum_Extract    = mGlacNum(iM_i:iM_f,iN_i:iN_f); 
+mGlacNum_Extract    = mGlacNum(iM_i:iM_f,iN_i:iN_f); %+1 removed
+% mDebrisMask_Extract = mDebrisMask(min(row):max(row),min(col):max(col)); 
 
 % Extract DEMs and Masks for given glacier
 mDEM    = ncread('/uufs/chpc.utah.edu/common/home/u6027899/ASTER/ASTER_90m_DEM.nc','mGlacAlt',[iM_i, iN_i],[iM_f-iM_i+1, iN_f-iN_i+1]); %+1 needed for ncread 'count'
@@ -91,14 +91,14 @@ mGlacMask   = mMask;
 % Make lat/lon matrices
 vLat    = (linspace(28.999861, 37.117361,kColLn))'; 
 mLat    = flipud(repmat(vLat,1,kRowLn));
-mLat    = mLat(iM_i:iM_f,iN_i:iN_f); %+1 removed
+mLat    = mLat(iM_i:iM_f,iN_i:iN_f); 
 vLong   = linspace(67.618750, 82.500694,kRowLn); %67.6187499 82.50069444
 mLong   = repmat(vLong,kColLn,1);
-mLong   = mLong(iM_i:iM_f,iN_i:iN_f); %+1 removed
+mLong   = mLong(iM_i:iM_f,iN_i:iN_f); 
 kLat    = nanmean(mLat(mMask==1)); % Find average latitude of glacier
 kLong   = nanmean(mLong(mMask==1)); % Find average longitude of glacier
 clearvars mGlacNum mTileNumber row col iM_i iM_f iN_i iN_f ...
-    vTileNumbers mGlacNum_Extract mDEM mMask t iTileNumber mM_Temp mN_Temp
+    vTileNumbers mGlacNum_Extract mDEM mMask t iTileNumber mM_Temp mN_Temp 
 
 %% Glacier slope and view factor
 iLat_min    = min(mLat(:));
@@ -116,8 +116,8 @@ mAspect(isnan(mAspect)) = nanmean(mAspect(mGlacMask==1));
 
 % Sky view factor (unitless fraction)
 kRadius                 = GUI_Input.kRadius; %<-- what is this?
-[mSVF]                  = SkyViewFactor1(mGlacMask,mGlacAlt,mLat,mLong,kRadius); % Gridcells 
-mSVF(isnan(mSVF))       = 1;
+% [mSVF]                  = SkyViewFactor1(mGlacMask,mGlacAlt,mLat,mLong,kRadius); % Gridcells 
+% mSVF(isnan(mSVF))       = 1;
 
 %% Remove added borders (--> mGlacMask to final size)
 mGlacMask(1:kBorder,:)  = []; mGlacMask(end-kBorder+1:end,:) = [];
@@ -128,8 +128,8 @@ mSlope(1:kBorder,:)     = []; mSlope(end-kBorder+1:end,:) = [];
 mSlope(:,1:kBorder)     = []; mSlope(:,end-kBorder+1:end) = [];
 mAspect(1:kBorder,:)    = []; mAspect(end-kBorder+1:end,:) = [];
 mAspect(:,1:kBorder)    = []; mAspect(:,end-kBorder+1:end) = [];
-mSVF(1:kBorder,:)       = []; mSVF(end-kBorder+1:end,:) = [];
-mSVF(:,1:kBorder)       = []; mSVF(:,end-kBorder+1:end) = [];
+% mSVF(1:kBorder,:)       = []; mSVF(end-kBorder+1:end,:) = [];
+% mSVF(:,1:kBorder)       = []; mSVF(:,end-kBorder+1:end) = [];
 mLat(1:kBorder,:)       = []; mLat(end-kBorder+1:end,:) = [];
 mLat(:,1:kBorder)       = []; mLat(:,end-kBorder+1:end) = [];
 mLong(1:kBorder,:)      = []; mLong(end-kBorder+1:end,:) = [];
@@ -146,17 +146,14 @@ elseif strcmp(sGCM,'WRF')
 end
 
 sTempRes = GUI_Input.HAR_temp_res;
-if strcmp(sGCM,'FLOR')
-    iEnsNum         = GUI_Input.ensemble_number; % EJ: Only matters if sGCM = FLOR
-    [ vLW_in, vP_d, vP_a, ~, vRH, vT_a, vSW_in, vU, stTime, Data ] = ExtractFLOR1(kLat, kLong, sDataDirectory, iEnsNum);
-elseif strcmp(sGCM,'HAR')
+
+if strcmp(sGCM,'HAR')
     if strcmp(sTempRes,'Hourly') % EJ: I can never remember whether or not to capitalize things
         sTempRes    = 'hourly';
     elseif strcmp(sTempRes,'Daily')
         sTempRes    = 'daily';
     end
     [ vSW_in, vU, vT_a, vP_d, vP_a, vRH, ~, vLW_in, stTime, Data  ] = ExtractHAR1( kLat, kLong, sTempRes, sDataDirectory ); %pulls in all HAR output
-elseif strcmp(sGCM,'WRF')
     
 end
 
@@ -179,6 +176,7 @@ hr_count = nan(13,1);
 for i = 1:13 %2000-2013
   hr_count(i) = sum(vP_d(stTime.year==2000+i)~=0);
 end
+
 %% Start and End Dates
 % Start Date
 StartMonth  = str2double(GUI_Input.start_date(1:2));
@@ -193,9 +191,7 @@ EndDay      = str2double(GUI_Input.end_date(4:5));
 EndYear     = str2double(GUI_Input.end_date(7:10));
 
 kEndDay     = find(stTime.day==EndDay & stTime.month==EndMonth & stTime.year==EndYear,1,'first');
-
 %% Time Step
-
 % Data resolution (minutes)
 kData_Resolution = Data.Resolution_mins;
 % Time step (days)
@@ -206,7 +202,6 @@ kTimeStep_sec   = kTimeStep_days * 24 * 60 * 60;
 kN_per_Day      = 1 ./ kTimeStep_days;
 
 %% Inputs
-
 vTime           = 1:length(vT_a); 
 
 % Density of the snow (kg m^-3)
@@ -215,18 +210,20 @@ kRho_snow       = GUI_Input.snow_density;
 % Change in temperature, Forcing (C)
 % kDeltaT_a       = GUI_Input.temp_forcing;
 
-% Roughness length
-kZ_0m_snow  = GUI_Input.iZ_0m_snow;
-kZ_0m_ice   = GUI_Input.iZ_0m_ice;
-kZ_0T_snow  = GUI_Input.iZ_0T_snow;
-kZ_0T_ice   = GUI_Input.iZ_0T_ice;
-kZ_0q_snow  = GUI_Input.iZ_0q_snow;
-kZ_0q_ice   = GUI_Input.iZ_0q_ice;
+% Roughness length 
+kZ_0m_snow  = GUI_Input.Z_0m_snow;
+kZ_0m_ice   = GUI_Input.Z_0m_ice;
+kZ_0T_snow  = GUI_Input.Z_0T_snow;
+kZ_0T_ice   = GUI_Input.Z_0T_ice;
+kZ_0q_snow  = GUI_Input.Z_0q_snow;
+kZ_0q_ice   = GUI_Input.Z_0q_ice;
 
 %% Lapse rate (C km^-1)
 vLapseRates             = GCM_Surface_Lapse_Rates1( sGCM, sTempRes, kLat, kLong ); 
 
-[ vLapseRates_smooth ]  = SmoothLapseRates1( vLapseRates  ); 
+[ vLapseRates_smooth ]  = SmoothLapseRates1( vLapseRates  );  % unit: deg/km
+vLapseRates_smooth      = vLapseRates_smooth * GUI_Input.lra; % ADD VARIATION HERE
+
 %% Scale Wind Speed from 10m to 2m (for HAR)
 if strcmp(sGCM,'HAR')
     kZ_0    = nanmean([kZ_0m_snow,kZ_0m_ice]);
@@ -253,7 +250,7 @@ else %HAR!
         end
 end
 
-%% Constants
+%% Constants 
 
 % Latent heat of sublimation (J kg^-1)
 kL_s        = 2.848e6;                                                          % From Rupper and Roe, 2008; Molg and Hardy, 2004
@@ -262,18 +259,19 @@ kL_v        = 2.514e6;                                                        	%
 % Latent heat of fusion (J kg^-1)
 kL_f        = 3.34e5;                                                           % From Rupper and Roe, 2008
 % Albedo of fresh snow (unitless)
-kAlpha_fs   = 0.75;                                                             % 0.9 from Molg and Hardy, 2004; 0.85 from Physics of Glaciers
+kAlpha_fs   = GUI_Input.Alpha_fs;                                                           % 0.9 from Molg and Hardy, 2004; 0.85 from Physics of Glaciers
 % Albedo of firn (unitless)
 kAlpha_fi   = 0.53;                                                             % 0.53 from Molg and Hardy, 2004; 0.55 from Physics of Glaciers; 0.40 in Johnson & Rupper
 % Albedo of glacier ice (unitless)
-kAlpha_i    = 0.34;                                                             % 0.45 from Molg and Hardy, 2004; 0.35 from Physics of Glaciers; 0.30 in Johnson & Rupper
+kAlpha_i    = GUI_Input.Alpha_i;                                                            % 0.45 from Molg and Hardy, 2004; 0.35 from Physics of Glaciers; 0.30 in Johnson & Rupper
 % e-folding constant for aging snow (days)
 kE_t        = 21.9;                                                          	% From Molg and Hardy, 2004
 % e-folding constant for snow depth (m)
 kE_d        = 0.032;                                                            % From Molg and Hardy, 2004                                             
 % Density of glacier ice (kg m^-3)
 kRho_ice    = 917;
-
+% Precipitation phase transition threshold (C) [AG added this to lines where hard-coded as 0: approx. lines 427, 522, 566, 692, 696]
+kRainThreshold = GUI_Input.RainThreshold;  
 %% Make glacier matrices
 
 mTotalMelt  = zeros(size(mGlacMask));
@@ -302,7 +300,7 @@ RAve.PrecipFrac = NaN(length(vTime),1);
 %% Surface Temperature Constants
 
 % Emissivity
-kE_i        = 1; %AG. was 0.98;                                                 % 0.98 in Johnson & Rupper                                                     
+kE_i        = 1;                                                                % 0.98 in Johnson & Rupper                                                     
 % Stefan-Boltzmann constant (W m^-2 K^-4)
 kSigma      = 5.6703737e-8;                                                   	% Google
 % Air Density at standard sea level (kg m^-3)
@@ -321,18 +319,15 @@ kG          = 9.8076;                                                        	% 
 kC_w        = 4181.3;                                                       	% Wikipedia, http://en.wikipedia.org/wiki/Heat_capacity
 % Specific heat capacity of ice (J kg^-1 K^-1)
 kC_i        = 2097;                                                          	% From Arnold et al., 2006
-% Thermal conductivity of ice (W m^-1 K^-1)
-kK          = 2.10;                                                         	% From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 205   
-% Precipitation phase transition threshold (C) [AG added this to lines where hard-coded as 0]
-kRainThreshold = 2;
-
+% % Thermal conductivity of ice (W m^-1 K^-1)
+% kK          = 2.10;                                                         	% From Paterson, 1994; The Physics of Glaciers, 3rd ed., pg. 205   
 %% Preallocate 2 layer transient model
 mT_s = zeros(size(mGlacMask));
 mT_2 = zeros(size(mGlacMask));
 
 % Thickness of surface layers (m)
 kLayerThick_s = 0.22;
-kLayerThick_2 = 9.78; %Also tried to have T_b at depth 10m (mean Tair, consistent w/ Paterson; -1.2 C, see below)
+kLayerThick_2 = 9.78; 
 
 % % Calculate temperature of the main body (DEEP) of the glacier (mean annual air temp) (C)
 mT_b = (nanmean(vT_a) + (kAWS_Alt - mGlacAlt) .* nanmean(vLapseRates_smooth) / 1000) .* mGlacMask;
@@ -380,19 +375,19 @@ RAve.res      = GUI_Input.GlacNum_filename;
 
 TH_i.Accum = nan(size(mGlacMask));
 
-    RAve.U = nan(length(vTime),1);
-    RAve.Prcp = nan(length(vTime),1);
-    RAve.P_a = nan(length(vTime),1);
-    RAve.VP_a = nan(length(vTime),1);
-    RAve.VP_s = nan(length(vTime),1);
-    RAve.K_E = nan(length(vTime),1);
-    RAve.K_H = nan(length(vTime),1);
-    RAve.L_vs = nan(length(vTime),1);   
-    RAve.StabCorr = nan(length(vTime),1); 
-    RAve.Z_0m = nan(length(vTime),1);
-    RAve.Z_0q = nan(length(vTime),1);
-    RAve.Z_0T = nan(length(vTime),1);
-    
+RAve.U = nan(length(vTime),1);
+RAve.Prcp = nan(length(vTime),1);
+RAve.P_a = nan(length(vTime),1);
+RAve.VP_a = nan(length(vTime),1);
+RAve.VP_s = nan(length(vTime),1);
+RAve.K_E = nan(length(vTime),1);
+RAve.K_H = nan(length(vTime),1);
+RAve.L_vs = nan(length(vTime),1);   
+RAve.StabCorr = nan(length(vTime),1); 
+RAve.Z_0m = nan(length(vTime),1);
+RAve.Z_0q = nan(length(vTime),1);
+RAve.Z_0T = nan(length(vTime),1);
+
 % FOR SAVING FULLY DISTRIBUTED VARIABLES -----------------------------------------------------------------
 if GUI_Input.threeDsave == 1
 m3TotalMelt = nan([size(mGlacMask),kEnd-kStart+1]); %Total Melt (mm/time) *
@@ -417,7 +412,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % for t = kStart:kEnd 
-for t = [kStart+1:17544, kStart:kEnd] %SPINUP
+for t = [kStart+1:17544, kStart:kEnd] %SPINUP7NOV
+
     %% Extract timestep data
     mSW_in = vSW_in(t) .* mGlacMask;
     mSW_in = Calc_SW_in_dir_Sl_As1(mSW_in,mLat,mLong,mGlacAlt,mSlope,mAspect,stTime,mGlacMask,kTimeStep_days,sGCM,t);
@@ -440,7 +436,7 @@ for t = [kStart+1:17544, kStart:kEnd] %SPINUP
 
 % %  Apply precipitation correction (PC) to shift mean
 if vP_d(t) > 0
-    mPrecip = mPrecip + (13*GUI_Input.PC(g)/sum(hr_count)).* mGlacMask;
+    mPrecip = mPrecip + (13*GUI_Input.PC/sum(hr_count)).* mGlacMask;
 end  
 
     %% Calculate air pressure gradient with the hydrostatic equation (hPa/m)
@@ -515,9 +511,8 @@ end
     % R_b (Richardson stability constant)
     mR_b = kG .* (mT_a - mT_s) .* (kZ - mZ_0m) ./ ((273.15 + mT_a) .* mU.^2);     % From Anderson and Others, 2010 (Eq. 17); same as Wagnon & al (2003)
     
-% From Anderson and Others, 2010: "The stability correction (the final term in Equation (16)) is only applied when Rb > 0 and when U > 1, 
+% From Anderson & al. 2010: "The stability correction (the final term in Equation (16)) is only applied when Rb > 0 and when U > 1, 
 % the latter to prevent the bulk Richardson number from becoming unreasonably high when wind speeds are very low (Oke, 1987)."
-
 mStabCorr = ones(size(mGlacMask)); 
        mStabCorr(mR_b > 0 & mU > 1 ) = (1 - 5 * mR_b(mR_b > 0 & mU > 1)).^2;                                              
        mStabCorr(mR_b < 0) = 1; 
@@ -600,9 +595,9 @@ mTs_previous = mT_s;
     
     if t >= 8810
         T_ot = find (abs(mT_s - mTs_previous) > 15); %T outliers
-        mT_s (T_ot) = nanmean(RAve.T_s(t-25:t-1)); %only average surface temp
-    end
-  
+        mT_s (T_ot) = nanmean(RAve.T_s(t-25:t-1)); %average surface temp
+    end  
+
 %  mT_2 should never be above freezing
     if isempty(find((mT_2>0),1)) == 0
         [row, col]  = find(mT_2>0);
@@ -610,7 +605,7 @@ mTs_previous = mT_s;
         return
     end
 
-    %% Melt energy (W m^-2) 
+    %% Melt energy (W m^-2)
 % compute melt & Ts from energy balance:
     mQ_m = zeros(size(mGlacMask));
 %     mQ_m(mT_s_Theor_s > 0) = mT_s(mT_s > 0) * kC_i .* mRho_s(mT_s > 0) * kLayerThick_s / kTimeStep_sec;
@@ -808,17 +803,17 @@ R2.TotalAveEvap = nanmean(mTotalEvap(mGlacMask == 1));
 clear r
 r = find (glID==y(g)); %index in geodedic MB spreadsheet
     R1.modelMB    = (R2.TotalAveMelt+R2.TotalAveAccum+R2.TotalAveSub)/13;
+    R1.modelMelt  = R2.TotalAveMelt/13;
     R1.geodeticMB = geoMB(r);
     R1.sigma      = geoMB_sigma(r);
 
 clearvars -except R1 R2 RAve R_Geo GUI_Input iGlacierNumber mTotalMelt mTotalSnowMelt mTotalIceMelt mTotalAccum mGlacMask mGlacAlt stTime ...
-    mTotalSub mTotalEvap Data kAWS_Alt modelMB geodeticMB sigma TH_i TH_f y g basinname
-
+    mTotalSub mTotalEvap Data kAWS_Alt modelMB geodeticMB sigma TH_i TH_f y g basinname mc ct fl
+toc
 if GUI_Input.threeDsave == 1 % IF BIG
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_name.mat'],'-v7.3')
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_3D_90m_exploreSW.mat'],'-v7.3')
 else
-    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_',basinname,'X.mat'])
+    save([GUI_Input.output_filename, num2str(iGlacierNumber),'_CALiter_OUTL2min',num2str(ct),'_',fl,'.mat']) %calibration iteration, flag for final or still calibrating
 end
-
 end
 
